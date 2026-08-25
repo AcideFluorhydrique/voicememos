@@ -1,0 +1,86 @@
+<resources>
+  <string name="memos_title">所有錄音</string>
+  <string name="memos_search_placeholder">搜尋</string>
+  <string name="memos_empty_title">沒有錄音</string>
+  <string name="memos_empty_subtitle">點一下錄音按鈕開始第一段錄音。</string>
+  <string name="memos_loading">載入中…</string>
+
+  <string name="action_edit">編輯</string>
+  <string name="action_done">完成</string>
+  <string name="action_cancel">取消</string>
+  <string name="action_delete">刪除</string>
+  <string name="action_share">分享</string>
+  <string name="action_rename">重新命名</string>
+  <string name="action_save">儲存</string>
+  <string name="action_favourite">加入喜好</string>
+  <string name="action_unfavourite">移出喜好</string>
+  <string name="action_more">更多</string>
+  <string name="action_back">返回</string>
+  <string name="action_restore">回復</string>
+  <string name="action_delete_forever">永久刪除</string>
+  <string name="action_open_settings">前往設定</string>
+  <string name="action_allow_access">允許取用</string>
+
+  <string name="label_today">今天</string>
+  <string name="label_yesterday">昨天</string>
+  <string name="label_speed">播放速度</string>
+  <string name="label_recording">錄音中</string>
+  <string name="label_paused">已暫停</string>
+  <string name="label_new_recording">新錄音</string>
+
+  <string name="menu_recently_deleted">最近刪除</string>
+  <string name="menu_settings">設定</string>
+
+  <string name="recorder_start">錄音</string>
+  <string name="recorder_stop">停止</string>
+  <string name="recorder_pause">暫停</string>
+  <string name="recorder_resume">繼續</string>
+  <string name="recorder_discard_title">要刪除這段錄音嗎？</string>
+  <string name="recorder_discard_message">這段錄音將不會被儲存。</string>
+  <string name="recorder_discard_confirm">刪除</string>
+
+  <string name="delete_memo_title">要刪除這段錄音嗎？</string>
+  <string name="delete_memo_message">錄音將移到「最近刪除」。</string>
+
+  <string name="rename_title">名稱</string>
+
+  <string name="editor_title">編輯錄音</string>
+  <string name="editor_trim">修剪</string>
+  <string name="editor_delete_section">刪除</string>
+  <string name="editor_save">儲存錄音</string>
+  <string name="editor_saving">儲存中…</string>
+  <string name="editor_hint">拖曳黃色控點選取範圍，「修剪」保留選取段落，「刪除」移除選取段落。</string>
+  <string name="editor_saved">已另存為新錄音</string>
+
+  <string name="deleted_title">最近刪除</string>
+  <string name="deleted_empty_title">沒有已刪除的錄音</string>
+  <string name="deleted_empty_subtitle">刪除的錄音會保留 30 天。</string>
+  <string name="deleted_footer">錄音會在「最近刪除」保留 30 天，之後會被永久移除。</string>
+  <string name="deleted_expires">到期日 %1$s</string>
+  <string name="deleted_delete_all_title">要刪除全部錄音嗎？</string>
+  <string name="deleted_delete_all_message">此動作無法復原。</string>
+  <string name="deleted_delete_all">全部刪除</string>
+
+  <string name="settings_title">設定</string>
+  <string name="settings_section_audio">錄音品質</string>
+  <string name="settings_quality">品質</string>
+  <string name="settings_quality_low">壓縮</string>
+  <string name="settings_quality_normal">標準</string>
+  <string name="settings_quality_high">無損</string>
+  <string name="settings_encoder">格式</string>
+  <string name="settings_stereo">立體聲錄音</string>
+  <string name="settings_skip_silence">略過靜音</string>
+  <string name="settings_bluetooth_mic">使用藍牙麥克風</string>
+  <string name="settings_pause_on_call">來電時暫停</string>
+  <string name="settings_add_location">加入位置資訊</string>
+  <string name="settings_section_recordings">錄音檔</string>
+  <string name="settings_file_prefix">錄音名稱</string>
+  <string name="settings_section_about">關於</string>
+  <string name="settings_version">版本</string>
+  <string name="settings_audio_footer">壓縮較節省空間，無損則保留錄音的所有細節。</string>
+
+  <string name="permission_mic_title">麥克風取用權</string>
+  <string name="permission_mic_message">語音備忘錄需要麥克風才能錄音。</string>
+  <string name="permission_media_title">音訊取用權</string>
+  <string name="permission_media_message">語音備忘錄需要取用音訊檔案才能顯示你的錄音。</string>
+</resources>

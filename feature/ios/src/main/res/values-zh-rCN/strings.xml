@@ -1,0 +1,86 @@
+<resources>
+  <string name="memos_title">所有录音</string>
+  <string name="memos_search_placeholder">搜索</string>
+  <string name="memos_empty_title">没有录音</string>
+  <string name="memos_empty_subtitle">轻点录音按钮开始第一段录音。</string>
+  <string name="memos_loading">载入中…</string>
+
+  <string name="action_edit">编辑</string>
+  <string name="action_done">完成</string>
+  <string name="action_cancel">取消</string>
+  <string name="action_delete">删除</string>
+  <string name="action_share">分享</string>
+  <string name="action_rename">重新命名</string>
+  <string name="action_save">保存</string>
+  <string name="action_favourite">加入喜好</string>
+  <string name="action_unfavourite">移出喜好</string>
+  <string name="action_more">更多</string>
+  <string name="action_back">返回</string>
+  <string name="action_restore">恢复</string>
+  <string name="action_delete_forever">永久删除</string>
+  <string name="action_open_settings">前往设置</string>
+  <string name="action_allow_access">允许访问</string>
+
+  <string name="label_today">今天</string>
+  <string name="label_yesterday">昨天</string>
+  <string name="label_speed">播放速度</string>
+  <string name="label_recording">录音中</string>
+  <string name="label_paused">已暂停</string>
+  <string name="label_new_recording">新录音</string>
+
+  <string name="menu_recently_deleted">最近删除</string>
+  <string name="menu_settings">设置</string>
+
+  <string name="recorder_start">录音</string>
+  <string name="recorder_stop">停止</string>
+  <string name="recorder_pause">暂停</string>
+  <string name="recorder_resume">继续</string>
+  <string name="recorder_discard_title">要删除这段录音嗎？</string>
+  <string name="recorder_discard_message">这段录音将不会被保存。</string>
+  <string name="recorder_discard_confirm">删除</string>
+
+  <string name="delete_memo_title">要删除这段录音嗎？</string>
+  <string name="delete_memo_message">录音将移到「最近删除」。</string>
+
+  <string name="rename_title">名稱</string>
+
+  <string name="editor_title">编辑录音</string>
+  <string name="editor_trim">修剪</string>
+  <string name="editor_delete_section">删除</string>
+  <string name="editor_save">保存录音</string>
+  <string name="editor_saving">保存中…</string>
+  <string name="editor_hint">拖动黄色控点选取范围，「修剪」保留选取片段，「删除」移除选取片段。</string>
+  <string name="editor_saved">已另存为新录音</string>
+
+  <string name="deleted_title">最近删除</string>
+  <string name="deleted_empty_title">没有已删除的录音</string>
+  <string name="deleted_empty_subtitle">删除的录音会保留 30 天。</string>
+  <string name="deleted_footer">录音会在「最近删除」保留 30 天，之後会被永久删除。</string>
+  <string name="deleted_expires">到期日 %1$s</string>
+  <string name="deleted_delete_all_title">要删除全部录音嗎？</string>
+  <string name="deleted_delete_all_message">此动作无法撤销。</string>
+  <string name="deleted_delete_all">全部删除</string>
+
+  <string name="settings_title">设置</string>
+  <string name="settings_section_audio">录音品质</string>
+  <string name="settings_quality">品质</string>
+  <string name="settings_quality_low">压缩</string>
+  <string name="settings_quality_normal">标准</string>
+  <string name="settings_quality_high">无损</string>
+  <string name="settings_encoder">格式</string>
+  <string name="settings_stereo">立体声录音</string>
+  <string name="settings_skip_silence">跳过静音</string>
+  <string name="settings_bluetooth_mic">使用蓝牙麦克风</string>
+  <string name="settings_pause_on_call">来电时暂停</string>
+  <string name="settings_add_location">加入位置资讯</string>
+  <string name="settings_section_recordings">录音文件</string>
+  <string name="settings_file_prefix">录音名稱</string>
+  <string name="settings_section_about">关于</string>
+  <string name="settings_version">版本</string>
+  <string name="settings_audio_footer">压缩较节省空间，无损则保留录音的所有细节。</string>
+
+  <string name="permission_mic_title">麦克风访问权限</string>
+  <string name="permission_mic_message">语音备忘录需要麦克风才能录音。</string>
+  <string name="permission_media_title">音频访问权限</string>
+  <string name="permission_media_message">语音备忘录需要访问音频文件才能显示你的录音。</string>
+</resources>
