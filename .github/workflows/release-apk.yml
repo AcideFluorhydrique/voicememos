@@ -1,0 +1,42 @@
+name: Release APK
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish a release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # no keystore is committed so the release apk comes out unsigned, the debug apk
+      # built by the other workflow is the one that installs without extra steps
+      - name: Assemble the release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Attach the APK to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
