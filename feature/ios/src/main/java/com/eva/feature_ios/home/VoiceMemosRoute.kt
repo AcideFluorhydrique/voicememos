@@ -57,8 +57,10 @@ fun NavGraphBuilder.voiceMemosRoute(controller: NavHostController) =
 
 		val currentRecorderViewModel by rememberUpdatedState(recorderViewModel)
 
-		// the service is bound while the screen is on top and released when it leaves
-		LifecycleStartEffect(backStackEntry) {
+		// the service is bound while the screen is on top and released when it leaves,
+		// the key is named because a NavBackStackEntry is itself a LifecycleOwner and
+		// would otherwise pick the keyless overload
+		LifecycleStartEffect(key1 = Unit) {
 			currentRecorderViewModel.bindService()
 			onStopOrDispose { currentRecorderViewModel.unBindService() }
 		}
