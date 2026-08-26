@@ -1,9 +1,6 @@
 plugins {
 	alias(libs.plugins.recorderapp.android.library)
-	alias(libs.plugins.recorderapp.hilt)
 	alias(libs.plugins.recorderapp.compose.compiler)
-
-	alias(libs.plugins.kotlinx.serialization)
 }
 
 android {
@@ -14,20 +11,11 @@ android {
 }
 
 dependencies {
-	// navigation
+	// the animated destination helper
 	implementation(libs.androidx.navigation.compose)
-	implementation(libs.kotlinx.serialization.json)
+	// the splash screen exit animation
 	implementation(libs.androidx.core.splashscreen)
 
-	// hilt viewmodel
-	implementation(libs.androidx.hilt.navigation.compose)
-
-	//dynamic font
-	implementation(libs.androidx.ui.text.google.fonts)
-
-	//commons
+	// exposed, the feature modules hold their lists in immutable collections
 	api(libs.kotlinx.collections.immutable)
-	api(libs.androidx.graphics.shapes)
-	//icons
-	api(libs.androidx.icons.extended)
 }

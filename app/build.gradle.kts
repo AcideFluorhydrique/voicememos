@@ -103,12 +103,6 @@ dependencies {
 	implementation(project(":core:cupertino"))
 	implementation(project(":data:worker"))
 	implementation(project(":data:interactions"))
-	implementation(project(":feature:categories"))
-	implementation(project(":feature:player"))
-	implementation(project(":feature:recorder"))
-	implementation(project(":feature:recordings"))
-	implementation(project(":feature:editor"))
-	implementation(project(":feature:settings"))
 	implementation(project(":feature:widget"))
 	implementation(project(":feature:ios"))
 

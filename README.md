@@ -45,9 +45,9 @@ Everything below the interface is upstream and unchanged:
 - `data:recordings` — MediaStore access, trash handling, metadata
 - `data:datastore`, `data:database`, `data:categories`, `data:bookmarks`, `data:worker`
 
-The older Material screens (`feature:recorder`, `feature:recordings`, `feature:player`,
-`feature:editor`, `feature:settings`, `feature:categories`) are still in the repository and
-still build, they are simply no longer wired into the navigation graph.
+The Material screens that came with the upstream project have been removed, `feature:ios`
+replaces all of them. `feature:widget` stays, it owns the home screen widgets and their
+deep links now open the memos list.
 
 ## 🏗️ Building
 

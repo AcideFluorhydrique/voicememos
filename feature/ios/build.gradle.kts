@@ -19,6 +19,7 @@ dependencies {
 	implementation(libs.androidx.navigation.compose)
 	implementation(libs.androidx.hilt.navigation.compose)
 	implementation(libs.kotlinx.serialization.json)
+	implementation(libs.kotlinx.collections.immutable)
 
 	// lifecycle service for the recorder binder
 	implementation(libs.androidx.lifecycle.service)
