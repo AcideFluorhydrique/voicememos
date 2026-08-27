@@ -9,6 +9,7 @@ import android.database.SQLException
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import com.eva.datastore.domain.repository.RecorderFileSettingsRepo
@@ -258,8 +259,25 @@ internal class VoiceRecordingsProviderImpl(
 			try {
 				emit(Resource.Loading)
 				val uri = recording.fileUri.toUri()
+
+				// the display name carries the extension while the title does not, dropping
+				// the extension here would leave the file without a type on disk. Older
+				// renames did exactly that, so the mime type is used to put it back
+				val extension = recording.displayName.substringAfterLast('.', "")
+					.ifBlank { MimeTypeMap.getSingleton().getExtensionFromMimeType(recording.mimeType) ?: "" }
+				val suffix = ".$extension"
+				val baseName = if (extension.isNotBlank() && newName.endsWith(suffix, true))
+					newName.dropLast(suffix.length)
+				else newName
+
 				val contentValues = ContentValues().apply {
-					put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, newName)
+					put(
+						MediaStore.Audio.AudioColumns.DISPLAY_NAME,
+						if (extension.isBlank()) baseName else baseName + suffix
+					)
+					// the recordings are listed by their title, renaming only the display
+					// name would rename the file while the app kept showing the old name
+					put(MediaStore.Audio.AudioColumns.TITLE, baseName)
 				}
 				val isSuccess = withContext(Dispatchers.IO) {
 					contentResolver.update(uri, contentValues, null, null)

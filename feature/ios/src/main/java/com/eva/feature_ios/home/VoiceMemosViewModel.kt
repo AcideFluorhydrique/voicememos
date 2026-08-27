@@ -245,13 +245,18 @@ internal class VoiceMemosViewModel @Inject constructor(
 
 		renameUseCase.invoke(memo.id, newName)
 			.onEach { resource ->
+				// a rename that quietly does nothing is worse than one that complains
 				when (resource) {
 					is Resource.Error -> {
 						val message = resource.message ?: resource.error.message ?: "Cannot rename"
 						_uiEvents.emit(UIEvents.ShowSnackBar(message))
 					}
 
-					else -> {}
+					is Resource.Success -> resource.message?.let { message ->
+						_uiEvents.emit(UIEvents.ShowToast(message))
+					}
+
+					Resource.Loading -> {}
 				}
 			}.launchIn(viewModelScope)
 	}
