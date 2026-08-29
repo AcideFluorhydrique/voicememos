@@ -11,7 +11,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.content.getSystemService
 import androidx.core.location.LocationManagerCompat
-import androidx.core.location.LocationRequestCompat
 import androidx.core.os.CancellationSignal
 import com.eva.location.domain.BaseLocationModel
 import com.eva.location.domain.exceptions.CannotFoundLastLocationException
@@ -22,6 +21,7 @@ import com.eva.location.domain.exceptions.LocationProviderNotFoundException
 import com.eva.location.domain.repository.LocationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
@@ -123,27 +123,24 @@ internal class CoarseLocationProviderImpl(private val context: Context) : Locati
 }
 
 /**
- * Single shot fix from [provider], null if nothing arrives before the request duration runs out.
- * The consumer is resumed on the calling thread, it only completes a continuation.
+ * Single shot fix from [provider], null if the provider gives up or nothing arrives in time. The
+ * compat helper takes no duration, so the wait is capped here and the timeout cancels the request
+ * through the signal. The consumer runs on the calling thread, it only completes a continuation.
  */
 @SuppressLint("MissingPermission")
 private suspend fun LocationManager.awaitCurrentLocation(provider: String): Location? =
-	suspendCancellableCoroutine { cont ->
-		val signal = CancellationSignal()
-		val request = LocationRequestCompat.Builder(0L)
-			.setQuality(LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
-			.setDurationMillis(CURRENT_LOCATION_TIMEOUT)
-			.build()
+	withTimeoutOrNull(CURRENT_LOCATION_TIMEOUT) {
+		suspendCancellableCoroutine { cont ->
+			val signal = CancellationSignal()
+			cont.invokeOnCancellation { signal.cancel() }
 
-		cont.invokeOnCancellation { signal.cancel() }
-
-		LocationManagerCompat.getCurrentLocation(
-			this,
-			provider,
-			request,
-			signal,
-			Executor { command -> command.run() }
-		) { location ->
-			if (cont.isActive) cont.resume(location)
+			LocationManagerCompat.getCurrentLocation(
+				this@awaitCurrentLocation,
+				provider,
+				signal,
+				Executor { command -> command.run() }
+			) { location ->
+				if (cont.isActive) cont.resume(location)
+			}
 		}
 	}
