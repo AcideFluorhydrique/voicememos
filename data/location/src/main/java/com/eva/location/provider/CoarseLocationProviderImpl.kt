@@ -5,9 +5,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.content.getSystemService
+import androidx.core.location.LocationManagerCompat
+import androidx.core.location.LocationRequestCompat
+import androidx.core.os.CancellationSignal
 import com.eva.location.domain.BaseLocationModel
 import com.eva.location.domain.exceptions.CannotFoundLastLocationException
 import com.eva.location.domain.exceptions.CurrentLocationTimeoutException
@@ -15,20 +20,17 @@ import com.eva.location.domain.exceptions.LocationNotEnabledException
 import com.eva.location.domain.exceptions.LocationPermissionNotFoundException
 import com.eva.location.domain.exceptions.LocationProviderNotFoundException
 import com.eva.location.domain.repository.LocationProvider
-import com.eva.location.domain.utils.await
-import com.google.android.gms.location.CurrentLocationRequest
-import com.google.android.gms.location.Granularity
-import com.google.android.gms.location.LastLocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.Executor
+import kotlin.coroutines.resume
+
+private const val CURRENT_LOCATION_TIMEOUT = 2_000L
+private const val LAST_LOCATION_MAX_AGE_NANOS = 10_000L * 1_000_000L
 
 internal class CoarseLocationProviderImpl(private val context: Context) : LocationProvider {
 
 	private val locationManager by lazy { context.getSystemService<LocationManager>() }
-
-	private val locationProvider by lazy { LocationServices.getFusedLocationProviderClient(context.applicationContext) }
 
 	private val _hasLocationPermission: Boolean
 		get() = ContextCompat.checkSelfPermission(
@@ -36,50 +38,56 @@ internal class CoarseLocationProviderImpl(private val context: Context) : Locati
 			Manifest.permission.ACCESS_COARSE_LOCATION
 		) == PermissionChecker.PERMISSION_GRANTED
 
-	private val lastLocationRequest: LastLocationRequest
-		get() = LastLocationRequest.Builder()
-			.setGranularity(Granularity.GRANULARITY_COARSE)
-			.setMaxUpdateAgeMillis(10_000)
-			.build()
-
-	private val currentLocationRequest: CurrentLocationRequest
-		get() = CurrentLocationRequest.Builder()
-			.setGranularity(Granularity.GRANULARITY_COARSE)
-			.setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
-			.setDurationMillis(2_000)
-			.build()
-
-	private val isGpsEnabled: Boolean
-		get() = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true
-
-	private val isNetworkProviderEnabled: Boolean
-		get() = locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
-
 	override val isLocationEnabled: Boolean
 		get() = locationManager?.isLocationEnabled == true
 
-	@SuppressLint("MissingPermission")
-	private suspend fun getCurrentLocation(): Result<BaseLocationModel> {
-		val tokenSource = CancellationTokenSource()
-		return try {
-			val location = locationProvider
-				.getCurrentLocation(currentLocationRequest, tokenSource.token)
-				.await()
-				?: return Result.failure(CurrentLocationTimeoutException())
-			 Result.success(location.toDomainModel())
-		} catch (e: CancellationException) {
-			tokenSource.cancel()
-			throw e
-		} catch (e: Exception) {
-			Result.failure(e)
+	/**
+	 * The providers this device can actually serve a coarse fix from, cheapest first. The platform
+	 * fused provider only exists from android 12, and roms without google play services frequently
+	 * ship no network provider at all, so a single usable provider is enough.
+	 */
+	private val availableProviders: List<String>
+		get() {
+			val manager = locationManager ?: return emptyList()
+			val candidates = buildList {
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+					add(LocationManager.FUSED_PROVIDER)
+				add(LocationManager.NETWORK_PROVIDER)
+				add(LocationManager.GPS_PROVIDER)
+			}
+			// a provider the rom does not ship can throw instead of reporting itself disabled
+			return candidates.filter { provider ->
+				runCatching { manager.isProviderEnabled(provider) }.getOrDefault(false)
+			}
 		}
+
+	@SuppressLint("MissingPermission")
+	private fun getLastKnownLocation(): Result<BaseLocationModel> {
+		val manager = locationManager ?: return Result.failure(LocationProviderNotFoundException())
+		// age is measured against the monotonic clock, the wall clock can jump under us
+		val oldestAccepted = SystemClock.elapsedRealtimeNanos() - LAST_LOCATION_MAX_AGE_NANOS
+
+		// each provider keeps its own last fix, take the freshest one that is still recent enough
+		val location = availableProviders
+			.mapNotNull { provider ->
+				runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
+			}
+			.filter { it.elapsedRealtimeNanos >= oldestAccepted }
+			.maxByOrNull { it.elapsedRealtimeNanos }
+			?: return Result.failure(CannotFoundLastLocationException())
+
+		return Result.success(location.toDomainModel())
 	}
 
 	@SuppressLint("MissingPermission")
-	private suspend fun getLastKnownLocation(): Result<BaseLocationModel> {
+	private suspend fun getCurrentLocation(): Result<BaseLocationModel> {
+		val manager = locationManager ?: return Result.failure(LocationProviderNotFoundException())
+		val provider = availableProviders.firstOrNull()
+			?: return Result.failure(LocationProviderNotFoundException())
+
 		return try {
-			val location = locationProvider.getLastLocation(lastLocationRequest).await()
-				?: return Result.failure(CannotFoundLastLocationException())
+			val location = manager.awaitCurrentLocation(provider)
+				?: return Result.failure(CurrentLocationTimeoutException())
 			Result.success(location.toDomainModel())
 		} catch (e: CancellationException) {
 			throw e
@@ -92,8 +100,7 @@ internal class CoarseLocationProviderImpl(private val context: Context) : Locati
 		return when {
 			!_hasLocationPermission -> Result.failure(LocationPermissionNotFoundException())
 			!isLocationEnabled -> Result.failure(LocationNotEnabledException())
-			!isNetworkProviderEnabled || !isGpsEnabled ->
-				Result.failure(LocationProviderNotFoundException())
+			availableProviders.isEmpty() -> Result.failure(LocationProviderNotFoundException())
 
 			else -> {
 				val lastLocation = getLastKnownLocation()
@@ -114,3 +121,29 @@ internal class CoarseLocationProviderImpl(private val context: Context) : Locati
 		accuracy = if (hasAccuracy()) accuracy else .0f
 	)
 }
+
+/**
+ * Single shot fix from [provider], null if nothing arrives before the request duration runs out.
+ * The consumer is resumed on the calling thread, it only completes a continuation.
+ */
+@SuppressLint("MissingPermission")
+private suspend fun LocationManager.awaitCurrentLocation(provider: String): Location? =
+	suspendCancellableCoroutine { cont ->
+		val signal = CancellationSignal()
+		val request = LocationRequestCompat.Builder(0L)
+			.setQuality(LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
+			.setDurationMillis(CURRENT_LOCATION_TIMEOUT)
+			.build()
+
+		cont.invokeOnCancellation { signal.cancel() }
+
+		LocationManagerCompat.getCurrentLocation(
+			this,
+			provider,
+			request,
+			signal,
+			Executor { command -> command.run() }
+		) { location ->
+			if (cont.isActive) cont.resume(location)
+		}
+	}

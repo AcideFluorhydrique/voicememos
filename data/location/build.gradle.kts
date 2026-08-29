@@ -8,8 +8,6 @@ android {
 }
 
 dependencies {
-	// location
-	implementation(libs.gms.play.services.location)
 	//local
 	implementation(project(":core:utils"))
 	implementation(project(":data:datastore"))
