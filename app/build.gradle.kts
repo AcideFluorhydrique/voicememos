@@ -27,6 +27,19 @@ android {
 	}
 
 	signingConfigs {
+		// CI hands the key over through the environment, the workflow decodes it from a
+		// repository secret, the same key every run so installed builds can be updated
+		val ciStoreFile = System.getenv("SIGNING_STORE_FILE")?.let(::File)
+		if (ciStoreFile != null && ciStoreFile.exists()) {
+			create("release") {
+				storeFile = ciStoreFile
+				storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+				keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+				keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+			}
+			return@signingConfigs
+		}
+
 		// find if there is a properties file
 		val keySecretFile = rootProject.file("keystore.properties")
 		if (!keySecretFile.exists()) return@signingConfigs

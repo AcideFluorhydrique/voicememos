@@ -26,3 +26,9 @@
 
 # proto files
 -shrinkunusedprotofields
+
+# the datastore settings are protobuf lite messages, lite reads their fields
+# reflectively by name, renaming them silently resets every setting to default
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
+	<fields>;
+}

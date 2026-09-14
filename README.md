@@ -56,8 +56,25 @@ The app builds on GitHub Actions, no local Android Studio needed:
 - Every push to `main` or `dev` runs **Build APK** and uploads an installable debug APK as a
   workflow artifact (`voice-memos-debug-apk`), grab it from the
   [Actions tab](https://github.com/AcideFluorhydrique/voicememos/actions).
-- Pushing a `v*` tag runs **Release APK** and attaches an unsigned release APK to the
+- Once the signing secrets below exist, the same run also uploads
+  `voice-memos-release-apk`, shrunk by R8 and signed with a stable key. That is the build
+  to install, the debug one is several times larger and its key changes on every run.
+- Pushing a `v*` tag runs **Release APK** and attaches the signed release APK to the
   GitHub release.
+
+### Signing secrets
+
+Repository settings → Secrets and variables → Actions:
+
+| Secret | Value |
+| --- | --- |
+| `SIGNING_KEYSTORE_BASE64` | the keystore file, base64 encoded |
+| `SIGNING_STORE_PASSWORD` | keystore password |
+| `SIGNING_KEY_ALIAS` | key alias |
+| `SIGNING_KEY_PASSWORD` | key password |
+
+Keep the keystore somewhere safe outside the repository, an Android app can only be
+updated by a build signed with the key it was first installed with.
 
 Locally it is the usual:
 
