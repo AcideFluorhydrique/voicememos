@@ -1,0 +1,1 @@
+A voice recorder with an inline player and a trim editor, no ads, no network

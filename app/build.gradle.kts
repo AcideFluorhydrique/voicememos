@@ -90,6 +90,12 @@ android {
 		compose = true
 		buildConfig = true
 	}
+	// the dependency metadata block is encrypted with a Google public key, only Play can read it,
+	// and F-Droid rejects APKs that carry it
+	dependenciesInfo {
+		includeInApk = false
+		includeInBundle = false
+	}
 	packaging {
 		resources {
 			excludes += "/META-INF/{AL2.0,LGPL2.1}"
