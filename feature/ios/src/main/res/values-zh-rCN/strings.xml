@@ -61,6 +61,10 @@
   <string name="deleted_delete_all_message">此动作无法撤销。</string>
   <string name="deleted_delete_all">全部删除</string>
 
+  <string name="settings_section_appearance">外观</string>
+  <string name="settings_theme_system">自动</string>
+  <string name="settings_theme_light">浅色</string>
+  <string name="settings_theme_dark">深色</string>
   <string name="settings_title">设置</string>
   <string name="settings_section_audio">录音品质</string>
   <string name="settings_quality">品质</string>

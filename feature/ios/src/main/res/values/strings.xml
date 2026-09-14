@@ -61,6 +61,10 @@
   <string name="deleted_delete_all_message">This cannot be undone.</string>
   <string name="deleted_delete_all">Delete All</string>
 
+  <string name="settings_section_appearance">Appearance</string>
+  <string name="settings_theme_system">Automatic</string>
+  <string name="settings_theme_light">Light</string>
+  <string name="settings_theme_dark">Dark</string>
   <string name="settings_title">Settings</string>
   <string name="settings_section_audio">Audio Quality</string>
   <string name="settings_quality">Quality</string>

@@ -26,12 +26,14 @@ fun NavGraphBuilder.memoSettingsRoute(controller: NavHostController) =
 
 		val audioSettings by viewModel.audioSettings.collectAsStateWithLifecycle()
 		val fileSettings by viewModel.fileSettings.collectAsStateWithLifecycle()
+		val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
 		UiEventsHandler(eventsFlow = viewModel::uiEvent)
 
 		MemoSettingsScreen(
 			audioSettings = audioSettings,
 			fileSettings = fileSettings,
+			themeMode = themeMode,
 			versionName = versionName,
 			onEvent = viewModel::onEvent,
 			onNavigateBack = dropUnlessResumed(block = controller::popBackStack),

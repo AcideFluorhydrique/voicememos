@@ -9,4 +9,5 @@ internal object DataStoreConstants {
 
 	// preferences
 	const val SHOW_ON_BOARDING_SCREEN = "show_on_boarding_screen"
+	const val APP_THEME_MODE = "app_theme_mode"
 }

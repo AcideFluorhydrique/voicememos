@@ -102,6 +102,7 @@ dependencies {
 	implementation(project(":core:ui"))
 	implementation(project(":core:cupertino"))
 	implementation(project(":data:worker"))
+	implementation(project(":data:datastore"))
 	implementation(project(":data:interactions"))
 	implementation(project(":feature:widget"))
 	implementation(project(":feature:ios"))

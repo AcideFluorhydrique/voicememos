@@ -27,6 +27,7 @@ import com.eva.cupertino.components.CupertinoSeparator
 import com.eva.cupertino.components.CupertinoSwitch
 import com.eva.cupertino.components.CupertinoTextButton
 import com.eva.cupertino.theme.CupertinoTheme
+import com.eva.datastore.domain.enums.AppThemeMode
 import com.eva.datastore.domain.enums.RecordQuality
 import com.eva.datastore.domain.enums.RecordingEncoders
 import com.eva.datastore.domain.models.RecorderAudioSettings
@@ -38,6 +39,7 @@ import com.eva.feature_ios.home.composables.RenameMemoDialog
 internal fun MemoSettingsScreen(
 	audioSettings: RecorderAudioSettings,
 	fileSettings: RecorderFileSettings,
+	themeMode: AppThemeMode,
 	versionName: String,
 	onEvent: (MemoSettingsEvent) -> Unit,
 	onNavigateBack: () -> Unit,
@@ -72,6 +74,18 @@ internal fun MemoSettingsScreen(
 			contentPadding = PaddingValues(vertical = 16.dp),
 			verticalArrangement = Arrangement.spacedBy(24.dp),
 		) {
+			item(key = "appearance") {
+				CupertinoSection(header = stringResource(R.string.settings_section_appearance)) {
+					Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+						CupertinoSegmentedControl(
+							options = AppThemeMode.entries,
+							selected = themeMode,
+							onSelect = { mode -> onEvent(MemoSettingsEvent.OnThemeModeChange(mode)) },
+							label = { mode -> themeModeLabel(mode) },
+						)
+					}
+				}
+			}
 			item(key = "audio") {
 				CupertinoSection(
 					header = stringResource(R.string.settings_section_audio),
@@ -204,6 +218,15 @@ internal fun MemoSettingsScreen(
 		)
 	}
 }
+
+@Composable
+private fun themeModeLabel(mode: AppThemeMode): String = stringResource(
+	when (mode) {
+		AppThemeMode.SYSTEM -> R.string.settings_theme_system
+		AppThemeMode.LIGHT -> R.string.settings_theme_light
+		AppThemeMode.DARK -> R.string.settings_theme_dark
+	}
+)
 
 @Composable
 private fun qualityLabel(quality: RecordQuality): String = stringResource(

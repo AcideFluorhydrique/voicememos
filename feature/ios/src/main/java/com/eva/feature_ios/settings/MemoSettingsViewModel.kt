@@ -1,10 +1,12 @@
 package com.eva.feature_ios.settings
 
 import androidx.lifecycle.viewModelScope
+import com.eva.datastore.domain.enums.AppThemeMode
 import com.eva.datastore.domain.enums.RecordQuality
 import com.eva.datastore.domain.enums.RecordingEncoders
 import com.eva.datastore.domain.models.RecorderAudioSettings
 import com.eva.datastore.domain.models.RecorderFileSettings
+import com.eva.datastore.domain.repository.PreferencesSettingsRepo
 import com.eva.datastore.domain.repository.RecorderAudioSettingsRepo
 import com.eva.datastore.domain.repository.RecorderFileSettingsRepo
 import com.eva.ui.viewmodel.AppViewModel
@@ -23,6 +25,7 @@ import javax.inject.Inject
 internal class MemoSettingsViewModel @Inject constructor(
 	private val audioSettingsRepo: RecorderAudioSettingsRepo,
 	private val fileSettingsRepo: RecorderFileSettingsRepo,
+	private val preferencesRepo: PreferencesSettingsRepo,
 ) : AppViewModel() {
 
 	private val _uiEvents = MutableSharedFlow<UIEvents>()
@@ -36,6 +39,13 @@ internal class MemoSettingsViewModel @Inject constructor(
 			initialValue = RecorderAudioSettings()
 		)
 
+	val themeMode = preferencesRepo.appThemeModeFlow
+		.stateIn(
+			scope = viewModelScope,
+			started = SharingStarted.WhileSubscribed(5_000),
+			initialValue = AppThemeMode.SYSTEM
+		)
+
 	val fileSettings = fileSettingsRepo.fileSettingsFlow
 		.stateIn(
 			scope = viewModelScope,
@@ -46,6 +56,9 @@ internal class MemoSettingsViewModel @Inject constructor(
 	fun onEvent(event: MemoSettingsEvent) {
 		viewModelScope.launch {
 			when (event) {
+				is MemoSettingsEvent.OnThemeModeChange ->
+					preferencesRepo.onAppThemeModeChange(event.mode)
+
 				is MemoSettingsEvent.OnQualityChange -> audioSettingsRepo.onQualityChange(event.quality)
 				is MemoSettingsEvent.OnEncoderChange -> audioSettingsRepo.onEncoderChange(event.encoder)
 				is MemoSettingsEvent.OnStereoChange -> audioSettingsRepo.onStereoModeChange(event.enabled)
@@ -73,6 +86,7 @@ internal class MemoSettingsViewModel @Inject constructor(
 }
 
 internal sealed interface MemoSettingsEvent {
+	data class OnThemeModeChange(val mode: AppThemeMode) : MemoSettingsEvent
 	data class OnQualityChange(val quality: RecordQuality) : MemoSettingsEvent
 	data class OnEncoderChange(val encoder: RecordingEncoders) : MemoSettingsEvent
 	data class OnStereoChange(val enabled: Boolean) : MemoSettingsEvent

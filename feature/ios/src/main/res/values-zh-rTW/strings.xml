@@ -61,6 +61,10 @@
   <string name="deleted_delete_all_message">此動作無法復原。</string>
   <string name="deleted_delete_all">全部刪除</string>
 
+  <string name="settings_section_appearance">外觀</string>
+  <string name="settings_theme_system">自動</string>
+  <string name="settings_theme_light">淺色</string>
+  <string name="settings_theme_dark">深色</string>
   <string name="settings_title">設定</string>
   <string name="settings_section_audio">錄音品質</string>
   <string name="settings_quality">品質</string>
