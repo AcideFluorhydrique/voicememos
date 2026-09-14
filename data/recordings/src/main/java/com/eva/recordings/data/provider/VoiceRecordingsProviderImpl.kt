@@ -270,14 +270,13 @@ internal class VoiceRecordingsProviderImpl(
 					newName.dropLast(suffix.length)
 				else newName
 
+				// only the display name is written, media store derives the title itself and
+				// drops a value an app puts there, the list reads its names from this column
 				val contentValues = ContentValues().apply {
 					put(
 						MediaStore.Audio.AudioColumns.DISPLAY_NAME,
 						if (extension.isBlank()) baseName else baseName + suffix
 					)
-					// the recordings are listed by their title, renaming only the display
-					// name would rename the file while the app kept showing the old name
-					put(MediaStore.Audio.AudioColumns.TITLE, baseName)
 				}
 				val isSuccess = withContext(Dispatchers.IO) {
 					contentResolver.update(uri, contentValues, null, null)

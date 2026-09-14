@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import androidx.core.os.bundleOf
+import com.eva.recordings.data.utils.recordingTitleOf
 import com.eva.recordings.domain.models.RecordedVoiceModel
 import com.eva.recordings.domain.models.TrashRecordingModel
 import com.eva.utils.toLocalDateTime
@@ -100,7 +101,7 @@ internal abstract class RecordingsContentResolverWrapper(private val context: Co
 
 				val model = RecordedVoiceModel(
 					id = id,
-					title = title,
+					title = recordingTitleOf(displayName, mimeType, title),
 					displayName = displayName,
 					duration = duration.milliseconds,
 					sizeInBytes = size,
@@ -142,7 +143,7 @@ internal abstract class RecordingsContentResolverWrapper(private val context: Co
 
 				val model = TrashRecordingModel(
 					id = id,
-					title = title,
+					title = recordingTitleOf(displayName, mimeType, title),
 					displayName = displayName,
 					recordedAt = dateAdded.seconds.toLocalDateTime(),
 					fileUri = uriString,

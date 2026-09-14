@@ -8,6 +8,7 @@ import android.database.Cursor
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.os.bundleOf
+import com.eva.recordings.data.utils.recordingTitleOf
 import com.eva.recordings.BuildConfig
 import com.eva.recordings.data.utils.evaluateWithTimeRead
 import com.eva.recordings.data.wrapper.RecordingsConstants
@@ -186,7 +187,7 @@ internal class PlayerFileProviderImpl(
 
 			AudioFileModel(
 				id = id,
-				title = title,
+				title = recordingTitleOf(displayName, mimeType, title),
 				displayName = displayName,
 				duration = duration.milliseconds,
 				size = size,
