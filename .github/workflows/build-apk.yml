@@ -72,6 +72,21 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # F-Droid only publishes this build if it carries the key listed in AllowedAPKSigningKeys,
+      # apksigner prints the certificate digest in exactly that form, lowercase hex without colons
+      - name: Print the signing certificate fingerprint
+        if: env.SIGNING_KEYSTORE_BASE64 != ''
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          APK="$(ls app/build/outputs/apk/release/*.apk | head -1)"
+          SHA256="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          echo "Signing certificate SHA-256: $SHA256"
+          {
+            echo "### Release signing certificate"
+            echo ""
+            echo "AllowedAPKSigningKeys: \`$SHA256\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload the build reports on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -70,6 +70,9 @@ android {
 			isMinifyEnabled = true
 			isShrinkResources = true
 			multiDexEnabled = true
+			// the version control block records the checkout the build came from, leave it out so
+			// the bytes depend on the sources alone and F-Droid can match the signed release
+			vcsInfo.include = false
 			// change the signing config if release is not found
 			signingConfig = signingConfigs.findByName("release")
 			proguardFiles(
@@ -100,7 +103,18 @@ android {
 		resources {
 			excludes += "/META-INF/{AL2.0,LGPL2.1}"
 		}
+		// the prebuilt androidx .so files only get stripped when a matching NDK happens to be
+		// installed, which varies between machines, so they ship untouched everywhere
+		jniLibs {
+			keepDebugSymbols += "**/*.so"
+		}
 	}
+}
+
+// the compiled baseline profile is not byte for byte stable between build machines, which
+// would keep F-Droid from matching the signed release, so it is left out
+tasks.configureEach {
+	if (name.contains("ArtProfile")) enabled = false
 }
 
 kotlin {
