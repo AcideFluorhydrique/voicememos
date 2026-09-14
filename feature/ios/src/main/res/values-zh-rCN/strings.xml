@@ -35,14 +35,14 @@
   <string name="recorder_stop">停止</string>
   <string name="recorder_pause">暂停</string>
   <string name="recorder_resume">继续</string>
-  <string name="recorder_discard_title">要删除这段录音嗎？</string>
+  <string name="recorder_discard_title">要删除这段录音吗？</string>
   <string name="recorder_discard_message">这段录音将不会被保存。</string>
   <string name="recorder_discard_confirm">删除</string>
 
-  <string name="delete_memo_title">要删除这段录音嗎？</string>
+  <string name="delete_memo_title">要删除这段录音吗？</string>
   <string name="delete_memo_message">录音将移到「最近删除」。</string>
 
-  <string name="rename_title">名稱</string>
+  <string name="rename_title">名称</string>
 
   <string name="editor_title">编辑录音</string>
   <string name="editor_trim">修剪</string>
@@ -55,9 +55,9 @@
   <string name="deleted_title">最近删除</string>
   <string name="deleted_empty_title">没有已删除的录音</string>
   <string name="deleted_empty_subtitle">删除的录音会保留 30 天。</string>
-  <string name="deleted_footer">录音会在「最近删除」保留 30 天，之後会被永久删除。</string>
+  <string name="deleted_footer">录音会在「最近删除」保留 30 天，之后会被永久删除。</string>
   <string name="deleted_expires">到期日 %1$s</string>
-  <string name="deleted_delete_all_title">要删除全部录音嗎？</string>
+  <string name="deleted_delete_all_title">要删除全部录音吗？</string>
   <string name="deleted_delete_all_message">此动作无法撤销。</string>
   <string name="deleted_delete_all">全部删除</string>
 
@@ -78,7 +78,7 @@
   <string name="settings_pause_on_call">来电时暂停</string>
   <string name="settings_add_location">加入位置资讯</string>
   <string name="settings_section_recordings">录音文件</string>
-  <string name="settings_file_prefix">录音名稱</string>
+  <string name="settings_file_prefix">录音名称</string>
   <string name="settings_section_about">关于</string>
   <string name="settings_version">版本</string>
   <string name="settings_audio_footer">压缩较节省空间，无损则保留录音的所有细节。</string>
