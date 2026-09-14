@@ -72,20 +72,50 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      # F-Droid only publishes this build if it carries the key listed in AllowedAPKSigningKeys,
-      # apksigner prints the certificate digest in exactly that form, lowercase hex without colons
+      # F-Droid only publishes this build if it carries the key listed in AllowedAPKSigningKeys.
+      # The digest comes from the keystore, which needs nothing but keytool, and is then checked
+      # against the certificate apksigner reads back out of the APK. Anything missing or
+      # mismatched fails the job, a green run with a blank value is what this replaced.
       - name: Print the signing certificate fingerprint
         if: env.SIGNING_KEYSTORE_BASE64 != ''
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         run: |
-          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
-          APK="$(ls app/build/outputs/apk/release/*.apk | head -1)"
-          SHA256="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          echo "Signing certificate SHA-256: $SHA256"
+          set -eo pipefail
+
+          # the DER encoded certificate, its sha256 is exactly the digest apksigner reports
+          KEY_SHA256="$(keytool -exportcert -keystore "$SIGNING_STORE_FILE" \
+            -storepass "$SIGNING_STORE_PASSWORD" -alias "$SIGNING_KEY_ALIAS" \
+            | sha256sum | cut -d' ' -f1)"
+          # the digest of zero bytes means keytool wrote nothing
+          if [ "$KEY_SHA256" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ]; then
+            echo "::error::keytool exported an empty certificate"
+            exit 1
+          fi
+          echo "Keystore certificate SHA-256: $KEY_SHA256"
           {
             echo "### Release signing certificate"
             echo ""
-            echo "AllowedAPKSigningKeys: \`$SHA256\`"
+            echo "AllowedAPKSigningKeys: \`$KEY_SHA256\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+          # read the certificate back out of the APK, a signing mistake must not hide behind the keystore
+          APK="$(ls app/build/outputs/apk/release/*.apk | head -1)"
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          echo "Verifying $APK with $APKSIGNER"
+          if ! "$APKSIGNER" verify --print-certs "$APK" > "$RUNNER_TEMP/apk-certs.txt" 2>&1; then
+            cat "$RUNNER_TEMP/apk-certs.txt"
+            echo "::error::apksigner could not verify the release APK"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/apk-certs.txt"
+          APK_SHA256="$(grep -m1 -oE 'SHA-256 digest: [0-9a-f]{64}' "$RUNNER_TEMP/apk-certs.txt" | awk '{print $NF}' || true)"
+          if [ "$APK_SHA256" != "$KEY_SHA256" ]; then
+            echo "::error::the APK is signed with '$APK_SHA256' but the keystore certificate is '$KEY_SHA256'"
+            exit 1
+          fi
+          echo "The APK signature matches the keystore certificate"
 
       - name: Upload the build reports on failure
         if: failure()
