@@ -1,5 +1,17 @@
 # 🎙️ Voice Memos for Android
 
+<p>
+  <a href="https://f-droid.org/en/packages/io.github.acidefluorhydrique.voicememos/">
+    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70" />
+  </a>
+  <a href="https://github.com/AcideFluorhydrique/voicememos/releases">
+    <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_github.png" alt="Get it on GitHub" height="70" />
+  </a>
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://f-droid.org/en/packages/io.github.acidefluorhydrique.voicememos/">
+    <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_obtainium.png" alt="Get it on Obtainium" height="70" />
+  </a>
+</p>
+
 An Android voice recorder that looks and behaves like the iOS **Voice Memos** app — the
 same one-screen list where a tap unfolds the player, the same red record dock, the same
 yellow-handled trim editor — built on top of the excellent
@@ -8,6 +20,39 @@ yellow-handled trim editor — built on top of the excellent
 > Android has no good free and open source recorder with a proper editor. This fork keeps
 > RecorderApp's recording, playback and editing engine untouched and replaces the Material
 > interface with a Cupertino one.
+
+## 📥 Download
+
+- **[F-Droid](https://f-droid.org/en/packages/io.github.acidefluorhydrique.voicememos/)** —
+  the recommended way, with automatic updates through the F-Droid client.
+- **[GitHub Releases](https://github.com/AcideFluorhydrique/voicememos/releases)** — the
+  signed release APK is attached to every tagged release.
+- **[Obtainium](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/AcideFluorhydrique/voicememos/releases)** —
+  tracks new versions straight from the source.
+
+Requires Android 10 or later. No ads, no tracking, no network access and no dependency on
+Google Play services.
+
+The F-Droid build is [reproducible](https://f-droid.org/docs/Reproducible_Builds/): F-Droid
+builds the app from source, checks that the result is identical to the release APK, and
+ships it with the developer's signature. Every source carries the same signing key, so you
+can switch between F-Droid, GitHub and Obtainium without uninstalling.
+
+### Verifying the signature
+
+Signing certificate SHA-256 fingerprint:
+
+```
+10:8B:55:5D:A1:6F:5D:69:CD:57:16:31:19:D8:3F:10:ED:0B:7E:3B:CC:07:AB:94:80:78:E8:81:53:B1:D4:08
+```
+
+Check a downloaded APK with `apksigner` from the Android SDK build tools:
+
+```bash
+apksigner verify --print-certs app-release.apk
+```
+
+The `Signer #1 certificate SHA-256 digest` line should match the fingerprint above.
 
 ## ✨ What it does
 
