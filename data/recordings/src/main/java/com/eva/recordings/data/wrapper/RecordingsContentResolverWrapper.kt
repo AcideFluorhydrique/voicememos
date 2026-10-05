@@ -40,25 +40,22 @@ internal abstract class RecordingsContentResolverWrapper(private val context: Co
 
 
 	/**
-	 * Selects the recordings made by this install together with the ones an earlier
-	 * install left in the app folder. Those carry no owner any more, matching on the owner
-	 * alone made every recording vanish after a reinstall while the files were still there.
+	 * Selects everything in the app folder, the recordings of this install and the ones an
+	 * earlier install left there. Those carry no owner any more, selecting by owner made
+	 * every recording vanish after a reinstall while the files were still on the device.
+	 *
+	 * The owner column must stay out of the selection altogether. Media provider on recent
+	 * android narrows any query that mentions it down to rows the caller owns, an OR next
+	 * to it is simply overruled. Every recording is written into this folder, so the
+	 * folder alone loses nothing.
 	 */
 	protected fun ownRecordingsSelection(): Pair<String, Array<String>> {
 		val folders = RecordingsConstants.RECORDINGS_FOLDER_PATTERNS
 
-		val selection = buildString {
-			append("( ")
-			append(MediaStore.Audio.AudioColumns.OWNER_PACKAGE_NAME)
-			append(" = ? ")
-			repeat(folders.size) {
-				append("OR ")
-				append(MediaStore.Audio.AudioColumns.RELATIVE_PATH)
-				append(" LIKE ? ")
-			}
-			append(")")
+		val selection = folders.joinToString(separator = " OR ", prefix = "( ", postfix = " )") {
+			"${MediaStore.Audio.AudioColumns.RELATIVE_PATH} LIKE ?"
 		}
-		return selection to arrayOf(context.packageName, *folders.toTypedArray())
+		return selection to folders.toTypedArray()
 	}
 
 	protected val recordingsProjection: Array<String>
