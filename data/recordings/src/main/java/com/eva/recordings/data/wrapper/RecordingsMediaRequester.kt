@@ -34,6 +34,25 @@ object RecordingsMediaRequester {
 			.build()
 	}
 
+	/**
+	 * Asks to take recordings this install does not own back out of the trash, the system
+	 * restores them itself once the user agrees
+	 */
+	@RequiresApi(Build.VERSION_CODES.R)
+	fun createRestoreRequest(context: Context, models: Collection<TrashRecordingModel>)
+			: IntentSenderRequest? {
+
+		val uris = models.filterNot { it.owner == context.packageName }
+			.map(TrashRecordingModel::fileUri)
+			.map(String::toUri)
+
+		if (uris.isEmpty()) return null
+
+		val pendingIntent = MediaStore.createTrashRequest(context.contentResolver, uris, false)
+
+		return IntentSenderRequest.Builder(pendingIntent).build()
+	}
+
 	@JvmName("create_delete_requests_from_trash_models")
 	@RequiresApi(Build.VERSION_CODES.R)
 	fun createDeleteRequest(context: Context, models: Collection<TrashRecordingModel>)

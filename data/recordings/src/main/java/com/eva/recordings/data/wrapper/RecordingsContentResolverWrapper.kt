@@ -39,6 +39,28 @@ internal abstract class RecordingsContentResolverWrapper(private val context: Co
 		get() = context.contentResolver
 
 
+	/**
+	 * Selects the recordings made by this install together with the ones an earlier
+	 * install left in the app folder. Those carry no owner any more, matching on the owner
+	 * alone made every recording vanish after a reinstall while the files were still there.
+	 */
+	protected fun ownRecordingsSelection(): Pair<String, Array<String>> {
+		val folders = RecordingsConstants.RECORDINGS_FOLDER_PATTERNS
+
+		val selection = buildString {
+			append("( ")
+			append(MediaStore.Audio.AudioColumns.OWNER_PACKAGE_NAME)
+			append(" = ? ")
+			repeat(folders.size) {
+				append("OR ")
+				append(MediaStore.Audio.AudioColumns.RELATIVE_PATH)
+				append(" LIKE ? ")
+			}
+			append(")")
+		}
+		return selection to arrayOf(context.packageName, *folders.toTypedArray())
+	}
+
 	protected val recordingsProjection: Array<String>
 		get() = arrayOf(
 			MediaStore.Audio.AudioColumns._ID,

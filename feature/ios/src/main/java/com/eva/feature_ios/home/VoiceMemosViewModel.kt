@@ -134,6 +134,7 @@ internal class VoiceMemosViewModel @Inject constructor(
 			is MemoScreenEvent.OnSpeedChange -> onSpeedChange(event.speed)
 			is MemoScreenEvent.OnRename -> renameMemo(event.memo, event.newName)
 			is MemoScreenEvent.OnDelete -> deleteMemo(event.memo)
+			is MemoScreenEvent.OnTrashedBySystem -> onTrashedBySystem(event.memo)
 			is MemoScreenEvent.OnShare -> shareMemo(event.memo)
 			is MemoScreenEvent.OnToggleFavourite -> toggleFavourite(event.memo)
 		}
@@ -276,6 +277,13 @@ internal class VoiceMemosViewModel @Inject constructor(
 					else -> {}
 				}
 			}.launchIn(viewModelScope)
+	}
+
+	// the file is already in the trash, what is left is this app's own bookkeeping
+	private fun onTrashedBySystem(memo: RecordedVoiceModel) {
+		if (_selectedMemoId.value == memo.id) collapseSelection()
+
+		viewModelScope.launch { secondaryDataProvider.deleteRecordingMetaDataBulk(listOf(memo)) }
 	}
 
 	private fun shareMemo(memo: RecordedVoiceModel) = viewModelScope.launch {

@@ -29,6 +29,9 @@ internal sealed interface MemoScreenEvent {
 
 	data class OnDelete(val memo: RecordedVoiceModel) : MemoScreenEvent
 
+	/**The system moved the recording to the trash itself after the user approved it*/
+	data class OnTrashedBySystem(val memo: RecordedVoiceModel) : MemoScreenEvent
+
 	data class OnShare(val memo: RecordedVoiceModel) : MemoScreenEvent
 
 	data class OnToggleFavourite(val memo: RecordedVoiceModel) : MemoScreenEvent

@@ -119,13 +119,8 @@ internal class VoiceRecordingsProviderImpl(
 				ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS to selectionArgs,
 			)
 		} else {
-			// only owner package
-			val selection = buildString {
-				append(MediaStore.Audio.AudioColumns.OWNER_PACKAGE_NAME)
-				append(" = ? ")
-			}
-			val selectionArgs = arrayOf(context.packageName)
-			// items only of this package
+			// this install's recordings and the ones left in the app folder
+			val (selection, selectionArgs) = ownRecordingsSelection()
 			bundleOf(
 				ContentResolver.QUERY_ARG_SQL_SELECTION to selection,
 				ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS to selectionArgs,

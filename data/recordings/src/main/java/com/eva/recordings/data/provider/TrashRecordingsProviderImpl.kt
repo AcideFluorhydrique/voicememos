@@ -71,9 +71,8 @@ internal class TrashRecordingsProviderImpl(
 		}
 
 	override suspend fun getTrashedVoiceRecordings(): ResourcedTrashRecordingModels {
-		// queries only the trash ones of this app
-		val selection = "${MediaStore.Audio.AudioColumns.OWNER_PACKAGE_NAME} = ? "
-		val selectionArgs = arrayOf(context.packageName)
+		// the trashed ones of this install and of the app folder
+		val (selection, selectionArgs) = ownRecordingsSelection()
 		val sortColumns = arrayOf(MediaStore.Audio.AudioColumns.DATE_EXPIRES)
 
 		val queryArgs = bundleOf(
