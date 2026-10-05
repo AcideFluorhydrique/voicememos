@@ -1,3 +1,5 @@
 Recordings made before a reinstall show up again.
 
 Android forgets which app made a file once that app is removed, so after reinstalling, earlier recordings stayed in the folder but disappeared from the list and from Recently Deleted. They are listed again. Renaming, deleting or recovering one of them asks for confirmation through a system prompt on Android 11 and up.
+
+The app name on the home screen follows the system language, 語音備忘錄 or 语音备忘录 in Chinese.

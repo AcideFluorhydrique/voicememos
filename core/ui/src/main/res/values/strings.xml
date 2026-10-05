@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name" translatable="false">Voice Memos</string>
+  <string name="app_name">Voice Memos</string>
   <string name="recorder_action_pause">Pause</string>
   <string name="recorder_action_resume">Resume</string>
   <string name="recorder_action_stop">Stop</string>
