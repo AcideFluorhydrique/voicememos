@@ -3,6 +3,7 @@ package com.eva.utils
 object IntentConstants {
 	const val APPLICATION_NAME = "io.github.acidefluorhydrique.voicememos"
 	const val MAIN_ACTIVITY = "com.eva.recorderapp.MainActivity"
+	const val RECORDER_SERVICE = "com.eva.recorder.data.service.VoiceRecorderService"
 	const val RECORDER_WIDGET_RECEIVER = "com.eva.feature_widget.receivers.RecorderWidgetReceiver"
 	const val RECORDINGS_WIDGET_RECEIVER =
 		"com.eva.feature_widget.receivers.RecordingsWidgetReceiver"

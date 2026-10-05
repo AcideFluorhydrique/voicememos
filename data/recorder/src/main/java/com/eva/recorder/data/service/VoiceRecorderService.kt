@@ -175,14 +175,16 @@ internal class VoiceRecorderService : LifecycleService() {
 	}
 
 	private fun onStartRecording() {
+		// go foreground before touching the microphone. Started from the home screen widget
+		// the app has no window, android only lets a background app record once its
+		// microphone service is in the foreground, and a service started as a foreground
+		// one has a few seconds to say so, less than preparing the recorder can take
+		startVoiceRecorderService(
+			NotificationConstants.RECORDER_NOTIFICATION_ID,
+			notificationHelper.timerNotification
+		)
 		//start the recorder
-		lifecycleScope.launch { voiceRecorder.startRecording() }.invokeOnCompletion {
-			// start foreground service
-			startVoiceRecorderService(
-				NotificationConstants.RECORDER_NOTIFICATION_ID,
-				notificationHelper.timerNotification
-			)
-		}
+		lifecycleScope.launch { voiceRecorder.startRecording() }
 	}
 
 	override fun onUnbind(intent: Intent?): Boolean {

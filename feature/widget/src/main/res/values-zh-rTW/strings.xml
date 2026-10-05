@@ -1,0 +1,9 @@
+<resources>
+  <string name="recorder_state_recording">錄音中</string>
+  <string name="recorder_state_paused">已暫停</string>
+  <string name="widget_action_record">錄音</string>
+  <string name="widget_action_pause">暫停</string>
+  <string name="widget_action_resume">繼續</string>
+  <string name="widget_action_stop">停止並儲存</string>
+  <string name="widget_action_cancel">捨棄錄音</string>
+</resources>

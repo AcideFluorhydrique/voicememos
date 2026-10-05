@@ -15,13 +15,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import com.eva.recorderapp.navigation.AppNavHost
 import com.eva.ui.R
 import com.eva.ui.activity.animateOnExit
 import com.eva.cupertino.theme.CupertinoTheme
 import com.eva.datastore.domain.enums.AppThemeMode
+import com.eva.feature_widget.recorder.refreshRecorderWidgets
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -86,6 +89,13 @@ class MainActivity : ComponentActivity() {
 		else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
 
 		enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+	}
+
+	override fun onStop() {
+		super.onStop()
+		// the widget decides what its record button does from the microphone permission,
+		// which may just have been granted in here
+		lifecycleScope.launch { refreshRecorderWidgets(applicationContext) }
 	}
 
 	override fun onNewIntent(intent: Intent) {

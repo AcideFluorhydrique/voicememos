@@ -2,6 +2,8 @@ package com.eva.feature_widget.recorder.composable
 
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
@@ -11,6 +13,9 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
+import androidx.glance.action.Action
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.background
@@ -20,14 +25,13 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.layout.wrapContentSize
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.eva.feature_widget.R
 import com.eva.feature_widget.recorder.models.RecorderModel
 import com.eva.feature_widget.utils.RecorderAppWidgetTheme
@@ -36,17 +40,42 @@ import com.eva.utils.LocalTimeFormats
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.format
 
+/**
+ * What the buttons of the recorder widget do, all of it without opening the app.
+ * Left out in previews, the buttons are then drawn but do nothing.
+ */
+internal data class RecorderWidgetActions(
+	val record: Action,
+	val pause: Action,
+	val resume: Action,
+	val stop: Action,
+	val cancel: Action,
+)
+
+// the record red of the app, widgets do not go through the app theme
+private val RecordRed = ColorProvider(Color(0xFFFF3B30))
+private val OnRecordRed = ColorProvider(Color.White)
+
+// below this width only the essential button fits next to the timer
+private val CompactWidth = 200.dp
+
 @Composable
 @GlanceComposable
 internal fun RecorderWidgetContent(
 	model: RecorderModel,
 	modifier: GlanceModifier = GlanceModifier,
+	actions: RecorderWidgetActions? = null,
 ) {
 	val context = LocalContext.current
+	val isCompact = LocalSize.current.width < CompactWidth
 
 	val background = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 		GlanceTheme.colors.widgetBackground
 	else GlanceTheme.colors.background
+
+	val isRecording = model.state == RecorderState.RECORDING ||
+			model.state == RecorderState.PREPARING
+	val isPaused = model.state == RecorderState.PAUSED
 
 	Scaffold(
 		backgroundColor = background,
@@ -56,28 +85,12 @@ internal fun RecorderWidgetContent(
 		Row(
 			modifier = GlanceModifier
 				.fillMaxSize()
-				.padding(vertical = 12.dp),
+				.padding(vertical = 8.dp),
 			horizontalAlignment = Alignment.CenterHorizontally,
 			verticalAlignment = Alignment.CenterVertically,
 		) {
-			Box(
-				modifier = GlanceModifier
-					.size(48.dp)
-					.cornerRadius(8.dp)
-					.background(GlanceTheme.colors.primaryContainer)
-					.padding(4.dp),
-				contentAlignment = Alignment.Center
-			) {
-				Image(
-					provider = ImageProvider(R.drawable.ic_widget_mic),
-					contentDescription = context.getString(R.string.widget_recorder_widget),
-					modifier = GlanceModifier.size(32.dp),
-					colorFilter = ColorFilter.tint(colorProvider = GlanceTheme.colors.onPrimaryContainer)
-				)
-			}
-			Spacer(modifier = GlanceModifier.width(20.dp))
 			Column(
-				modifier = GlanceModifier.wrapContentSize(),
+				modifier = GlanceModifier.defaultWeight(),
 				horizontalAlignment = Alignment.Start
 			) {
 				Text(
@@ -86,13 +99,14 @@ internal fun RecorderWidgetContent(
 						color = GlanceTheme.colors.onBackground,
 						fontWeight = FontWeight.Medium,
 						fontSize = 18.sp
-					)
+					),
+					maxLines = 1,
 				)
-				Spacer(modifier = GlanceModifier.height(4.dp))
 
-				val currentState = when (model.state) {
-					RecorderState.RECORDING -> context.getString(R.string.recorder_state_recording)
-					RecorderState.PAUSED -> context.getString(R.string.recorder_state_paused)
+				val currentState = when {
+					isCompact -> null
+					isRecording -> context.getString(R.string.recorder_state_recording)
+					isPaused -> context.getString(R.string.recorder_state_paused)
 					else -> null
 				}
 
@@ -102,13 +116,101 @@ internal fun RecorderWidgetContent(
 						style = TextStyle(
 							color = GlanceTheme.colors.onSurfaceVariant,
 							fontWeight = FontWeight.Normal,
-							fontSize = 14.sp
+							fontSize = 13.sp
 						),
 						maxLines = 1,
 					)
 				}
 			}
+
+			when {
+				// idle, the one thing to do is start
+				!isRecording && !isPaused -> WidgetButton(
+					icon = R.drawable.ic_widget_mic,
+					description = context.getString(R.string.widget_action_record),
+					onClick = actions?.record,
+					background = RecordRed,
+					tint = OnRecordRed,
+				)
+
+				// a narrow widget keeps the button that ends and saves the recording
+				isCompact -> WidgetButton(
+					icon = com.eva.ui.R.drawable.ic_stop,
+					description = context.getString(R.string.widget_action_stop),
+					onClick = actions?.stop,
+					background = RecordRed,
+					tint = OnRecordRed,
+				)
+
+				else -> {
+					WidgetButton(
+						icon = com.eva.ui.R.drawable.ic_close,
+						description = context.getString(R.string.widget_action_cancel),
+						onClick = actions?.cancel,
+						background = GlanceTheme.colors.secondaryContainer,
+						tint = GlanceTheme.colors.onSecondaryContainer,
+						size = 36.dp,
+					)
+					Spacer(modifier = GlanceModifier.width(8.dp))
+					if (isPaused) {
+						WidgetButton(
+							icon = R.drawable.ic_widget_mic,
+							description = context.getString(R.string.widget_action_resume),
+							onClick = actions?.resume,
+							background = GlanceTheme.colors.secondaryContainer,
+							tint = RecordRed,
+							size = 36.dp,
+						)
+					} else {
+						WidgetButton(
+							icon = com.eva.ui.R.drawable.ic_pause,
+							description = context.getString(R.string.widget_action_pause),
+							onClick = actions?.pause,
+							background = GlanceTheme.colors.secondaryContainer,
+							tint = GlanceTheme.colors.onSecondaryContainer,
+							size = 36.dp,
+						)
+					}
+					Spacer(modifier = GlanceModifier.width(8.dp))
+					WidgetButton(
+						icon = com.eva.ui.R.drawable.ic_stop,
+						description = context.getString(R.string.widget_action_stop),
+						onClick = actions?.stop,
+						background = RecordRed,
+						tint = OnRecordRed,
+						size = 36.dp,
+					)
+				}
+			}
 		}
+	}
+}
+
+@Composable
+@GlanceComposable
+private fun WidgetButton(
+	icon: Int,
+	description: String,
+	onClick: Action?,
+	background: ColorProvider,
+	tint: ColorProvider,
+	size: Dp = 40.dp,
+) {
+	val shape = GlanceModifier
+		.size(size)
+		.cornerRadius(size / 2)
+		.background(background)
+
+	Box(
+		modifier = if (onClick != null) shape.clickable(onClick) else shape,
+		contentAlignment = Alignment.Center
+	) {
+		Image(
+			provider = ImageProvider(icon),
+			contentDescription = description,
+			modifier = GlanceModifier.size(size / 2),
+			colorFilter = ColorFilter.tint(colorProvider = tint)
+		)
 	}
 }
 

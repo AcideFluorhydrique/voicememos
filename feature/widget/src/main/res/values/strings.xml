@@ -10,8 +10,13 @@
   <string name="widget_recordings_preview_duration" translatable="false">00:00</string>
   <string name="recordings_load_failed" translatable="false">Cannot load recordings</string>
   <string name="widget_recorder_description" translatable="false">Start recording with a button click</string>
-  <string name="recorder_state_recording" translatable="false">Recording</string>
-  <string name="recorder_state_paused" translatable="false">Paused</string>
+  <string name="recorder_state_recording">Recording</string>
+  <string name="recorder_state_paused">Paused</string>
+  <string name="widget_action_record">Record</string>
+  <string name="widget_action_pause">Pause</string>
+  <string name="widget_action_resume">Resume</string>
+  <string name="widget_action_stop">Stop and save</string>
+  <string name="widget_action_cancel">Discard recording</string>
   <string name="widget_recorder_widget" translatable="false">Recorder Widget</string>
   <string name="widget_recordings_title" translatable="false">Recordings</string>
   <string name="widget_no_recordings" translatable="false">No Recordings</string>
