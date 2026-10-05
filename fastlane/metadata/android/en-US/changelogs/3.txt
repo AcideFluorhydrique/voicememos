@@ -1,0 +1,5 @@
+Record straight from the home screen widget.
+
+The recorder widget now has its own buttons: record while idle, then pause or resume and stop while recording, all without opening the app. Stretch the widget wider for a discard button. The microphone permission has to be granted in the app once first.
+
+Fixed the recordings widget showing "Failed to load widget" as soon as a recording started.

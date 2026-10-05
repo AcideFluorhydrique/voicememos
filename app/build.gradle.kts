@@ -17,8 +17,8 @@ android {
 		applicationId = "io.github.acidefluorhydrique.voicememos"
 		minSdk = libs.versions.minSdk.get().toInt()
 		targetSdk = libs.versions.compileSdk.get().toInt()
-		versionCode = 2
-		versionName = "1.0.1"
+		versionCode = 3
+		versionName = "1.0.2"
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 		vectorDrawables {
