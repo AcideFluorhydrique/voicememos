@@ -139,12 +139,28 @@ class AppRecorderWidget : GlanceAppWidget() {
 }
 
 /**
- * Redraws the recorder widgets, called when the app leaves the screen so a microphone
- * permission granted in the meantime reaches the record button.
+ * Brings the recorder widgets up to date with the microphone permission, called when the
+ * app leaves the screen, which is right after the permission can have been granted.
+ *
+ * Asking for an update is not enough on its own. Glance only draws a widget again when
+ * its state has changed, and a permission is not part of any state, so the widget kept
+ * opening the app after the permission was granted until something else, a resize for
+ * one, forced it to draw. The permission is written into the state first.
  */
 suspend fun refreshRecorderWidgets(context: Context) {
 	try {
-		AppRecorderWidget().updateAll(context.applicationContext)
+		val appContext = context.applicationContext
+
+		val canRecord = ContextCompat.checkSelfPermission(
+			appContext,
+			Manifest.permission.RECORD_AUDIO
+		) == PackageManager.PERMISSION_GRANTED
+
+		appContext.recorderWidgetData.updateData { content ->
+			if (content.canRecord == canRecord) content
+			else content.toBuilder().setCanRecord(canRecord).build()
+		}
+		AppRecorderWidget().updateAll(appContext)
 	} catch (e: Exception) {
 		e.printStackTrace()
 	}

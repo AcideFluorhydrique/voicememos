@@ -9,6 +9,10 @@ import "google/protobuf/duration.proto";
 message RecorderWidgetDataProto{
   RecordingModeProto mode = 1;
   google.protobuf.Duration duration = 2;
+  // whether the microphone permission is held. The widget checks the permission itself
+  // when it draws, this copy exists so that a change of it changes the state, which is
+  // the only thing that makes the widget draw again
+  bool can_record = 3;
 }
 
 enum RecordingModeProto{
