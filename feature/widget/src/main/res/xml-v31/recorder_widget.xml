@@ -6,6 +6,7 @@
   android:maxResizeHeight="@dimen/recorder_widget_max_height"
   android:minWidth="@dimen/recorder_widget_min_width"
   android:minHeight="@dimen/recorder_widget_min_height"
+  android:resizeMode="horizontal|vertical"
   android:previewLayout="@layout/recorder_widget_preview_layout"
   android:targetCellWidth="2"
   android:targetCellHeight="1"

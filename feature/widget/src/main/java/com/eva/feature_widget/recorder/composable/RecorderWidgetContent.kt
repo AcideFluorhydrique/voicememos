@@ -56,8 +56,11 @@ internal data class RecorderWidgetActions(
 private val RecordRed = ColorProvider(Color(0xFFFF3B30))
 private val OnRecordRed = ColorProvider(Color.White)
 
-// below this width only the essential button fits next to the timer
-private val CompactWidth = 200.dp
+// a two cell wide widget is around 150dp, room for the timer and two buttons. Narrower
+// than that only the stop button stays, and the discard button with the state label
+// need a widget stretched to about three cells
+private val SingleButtonWidth = 136.dp
+private val AllButtonsWidth = 220.dp
 
 @Composable
 @GlanceComposable
@@ -67,7 +70,9 @@ internal fun RecorderWidgetContent(
 	actions: RecorderWidgetActions? = null,
 ) {
 	val context = LocalContext.current
-	val isCompact = LocalSize.current.width < CompactWidth
+	val width = LocalSize.current.width
+	val isCompact = width < AllButtonsWidth
+	val hasRoomForTwo = width >= SingleButtonWidth
 
 	val background = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 		GlanceTheme.colors.widgetBackground
@@ -98,7 +103,7 @@ internal fun RecorderWidgetContent(
 					style = TextStyle(
 						color = GlanceTheme.colors.onBackground,
 						fontWeight = FontWeight.Medium,
-						fontSize = 18.sp
+						fontSize = if (isCompact) 16.sp else 18.sp
 					),
 					maxLines = 1,
 				)
@@ -133,14 +138,40 @@ internal fun RecorderWidgetContent(
 					tint = OnRecordRed,
 				)
 
-				// a narrow widget keeps the button that ends and saves the recording
-				isCompact -> WidgetButton(
-					icon = com.eva.ui.R.drawable.ic_stop,
-					description = context.getString(R.string.widget_action_stop),
-					onClick = actions?.stop,
-					background = RecordRed,
-					tint = OnRecordRed,
-				)
+				// the common two cell widget, pause or resume next to stop
+				isCompact -> {
+					if (hasRoomForTwo) {
+						if (isPaused) {
+							WidgetButton(
+								icon = R.drawable.ic_widget_mic,
+								description = context.getString(R.string.widget_action_resume),
+								onClick = actions?.resume,
+								background = GlanceTheme.colors.secondaryContainer,
+								tint = RecordRed,
+								size = 34.dp,
+							)
+						} else {
+							WidgetButton(
+								icon = com.eva.ui.R.drawable.ic_pause,
+								description = context.getString(R.string.widget_action_pause),
+								onClick = actions?.pause,
+								background = GlanceTheme.colors.secondaryContainer,
+								tint = GlanceTheme.colors.onSecondaryContainer,
+								size = 34.dp,
+							)
+						}
+						Spacer(modifier = GlanceModifier.width(6.dp))
+					}
+					// the button that ends and saves the recording is always there
+					WidgetButton(
+						icon = com.eva.ui.R.drawable.ic_stop,
+						description = context.getString(R.string.widget_action_stop),
+						onClick = actions?.stop,
+						background = RecordRed,
+						tint = OnRecordRed,
+						size = 34.dp,
+					)
+				}
 
 				else -> {
 					WidgetButton(
