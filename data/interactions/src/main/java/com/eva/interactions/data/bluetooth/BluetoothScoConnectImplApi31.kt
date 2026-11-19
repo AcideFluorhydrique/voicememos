@@ -65,7 +65,9 @@ internal class BluetoothScoConnectImplApi31(private val context: Context) : Blue
 				context,
 				receiver,
 				IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED),
-				ContextCompat.RECEIVER_NOT_EXPORTED
+				// the sender is the system, below android 13 a not exported receiver is guarded by
+				// a permission only this app holds and the system broadcast never gets through
+				ContextCompat.RECEIVER_EXPORTED
 			)
 			Log.d(TAG, "RECEIVER REGISTERED")
 
