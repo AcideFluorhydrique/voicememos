@@ -1,7 +1,7 @@
 name: Test a release in the emulator
 
-# Starts a published release APK on one android version, to check whether a reported crash
-# is in a release, or that it is gone. The pushed builds are tested by Build APK already.
+# Goes through a published release APK on one android version, to check whether a reported
+# crash is in a release, or that it is gone. The pushed builds are tested by Build APK already.
 
 on:
   workflow_dispatch:
@@ -21,10 +21,10 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
-    name: Start ${{ inputs.tag || 'the latest release' }} on API ${{ inputs.api_level }}
+  e2e:
+    name: Use ${{ inputs.tag || 'the latest release' }} on API ${{ inputs.api_level }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 75
 
     steps:
       - name: Checkout code
@@ -39,13 +39,22 @@ jobs:
           gh release download $TAG -R "$GITHUB_REPOSITORY" -p '*.apk' -D apks
           ls -la apks
 
+      # reads the screen without waiting for it to be still, the recorder timer never is
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uiautomator2
+        run: pip install uiautomator2==3.7.1
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Start the app in the emulator
+      - name: Go through the app in the emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ inputs.api_level }}
@@ -56,8 +65,9 @@ jobs:
           disk-size: 4G
           cores: 4
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash .github/scripts/emulator_smoke.sh apks emulator-results
+          # audio stays on, the emulator gives the recorder a silent microphone
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none
+          script: python3 .github/scripts/emulator_e2e.py apks emulator-results
 
       - name: Upload the screenshots and logs
         if: always()
