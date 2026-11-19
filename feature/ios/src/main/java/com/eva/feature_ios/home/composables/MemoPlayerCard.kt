@@ -13,7 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.components.CupertinoText
@@ -70,6 +74,7 @@ internal fun MemoPlayerCard(
 			playedColor = colors.label,
 			remainingColor = colors.quaternaryLabel,
 			height = 48.dp,
+			modifier = Modifier.testTag("player_waveform"),
 		)
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -95,8 +100,13 @@ internal fun MemoPlayerCard(
 		) {
 			SpeedButton(speed = state.speed, onSpeedChange = onSpeedChange)
 			SkipButton(isRewind = true, onClick = { onSkip(true) })
+			val playLabel = stringResource(
+				if (state.isPlaying) R.string.recorder_pause else R.string.action_play
+			)
 			Box(
 				modifier = Modifier
+					.testTag("player_play")
+					.semantics { contentDescription = playLabel }
 					.pressable(onClick = onPlayPause)
 					.size(56.dp),
 				contentAlignment = Alignment.Center,
@@ -108,8 +118,11 @@ internal fun MemoPlayerCard(
 				)
 			}
 			SkipButton(isRewind = false, onClick = { onSkip(false) })
+			val trimLabel = stringResource(R.string.editor_title)
 			Box(
 				modifier = Modifier
+					.testTag("player_trim")
+					.semantics { contentDescription = trimLabel }
 					.pressable(onClick = onTrim)
 					.size(40.dp),
 				contentAlignment = Alignment.Center,
@@ -133,18 +146,21 @@ internal fun MemoPlayerCard(
 				label = stringResource(R.string.action_delete),
 				tint = colors.destructive,
 				onClick = onDelete,
+				modifier = Modifier.testTag("card_delete"),
 			)
 			CardAction(
 				glyph = CupertinoGlyph.SHARE,
 				label = stringResource(R.string.action_share),
 				tint = colors.accent,
 				onClick = onShare,
+				modifier = Modifier.testTag("card_share"),
 			)
 			CardAction(
 				glyph = CupertinoGlyph.ELLIPSIS,
 				label = stringResource(R.string.action_more),
 				tint = colors.accent,
 				onClick = onMore,
+				modifier = Modifier.testTag("card_more"),
 			)
 		}
 	}
@@ -157,10 +173,15 @@ private fun SkipButton(
 	modifier: Modifier = Modifier,
 ) {
 	val colors = CupertinoTheme.colors
+	val label = stringResource(if (isRewind) R.string.action_skip_back else R.string.action_skip_forward)
 
 	Box(
 		modifier = modifier
+			.testTag(if (isRewind) "player_skip_back" else "player_skip_forward")
 			.pressable(onClick = onClick)
+			// the number under the glyph would otherwise be all TalkBack reads out, the click
+			// set by pressable comes before this and stays
+			.clearAndSetSemantics { contentDescription = label }
 			.size(44.dp),
 		contentAlignment = Alignment.Center,
 	) {
@@ -193,8 +214,12 @@ private fun SpeedButton(
 		else -> "1×"
 	}
 
+	val speedLabel = stringResource(R.string.label_speed)
+
 	Box(
 		modifier = modifier
+			.testTag("player_speed")
+			.semantics { contentDescription = speedLabel }
 			.pressable { onSpeedChange(speed.nextSpeed()) }
 			.background(color = colors.fill, shape = CircleShape)
 			.padding(horizontal = 10.dp, vertical = 6.dp),

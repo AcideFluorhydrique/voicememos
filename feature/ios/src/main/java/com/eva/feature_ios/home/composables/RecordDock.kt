@@ -26,7 +26,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.components.CupertinoSeparator
 import com.eva.cupertino.components.CupertinoText
@@ -61,6 +64,7 @@ internal fun RecordDock(
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
+					.testTag("recording_indicator")
 					.pressable(onClick = onResumeSession)
 					.padding(horizontal = 20.dp, vertical = 8.dp),
 				verticalAlignment = Alignment.CenterVertically,
@@ -91,6 +95,10 @@ internal fun RecordDock(
 				isRecording = isRecording,
 				onClick = onRecordClick,
 				enabled = enabled,
+				contentDescription = stringResource(
+					if (isRecording) R.string.recorder_stop else R.string.recorder_start
+				),
+				modifier = Modifier.testTag("record_button"),
 			)
 		}
 	}
@@ -100,6 +108,7 @@ internal fun RecordDock(
 @Composable
 internal fun RecordButton(
 	isRecording: Boolean,
+	contentDescription: String,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 	enabled: Boolean = true,
@@ -115,6 +124,7 @@ internal fun RecordButton(
 
 	Canvas(
 		modifier = modifier
+			.semantics { this.contentDescription = contentDescription }
 			.pressable(enabled = enabled, pressedAlpha = .6f, onClick = onClick)
 			.size(buttonSize),
 	) {

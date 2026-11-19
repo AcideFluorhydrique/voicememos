@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ data class CupertinoSwipeAction(
 	val glyph: CupertinoGlyph,
 	val background: Color,
 	val onClick: () -> Unit,
+	val testTag: String = "",
 )
 
 /**
@@ -77,6 +79,7 @@ fun CupertinoSwipeableRow(
 						.width(actionWidth)
 						.fillMaxHeight()
 						.background(action.background)
+						.testTag(action.testTag)
 						.pressable(pressedAlpha = .7f) {
 							scope.launch { offsetX.animateTo(0f) }
 							currentOnRevealChange(false)

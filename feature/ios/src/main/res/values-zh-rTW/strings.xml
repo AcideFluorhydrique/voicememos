@@ -20,6 +20,9 @@
   <string name="action_delete_forever">永久刪除</string>
   <string name="action_open_settings">前往設定</string>
   <string name="action_allow_access">允許取用</string>
+  <string name="action_play">播放</string>
+  <string name="action_skip_back">倒退 15 秒</string>
+  <string name="action_skip_forward">快轉 15 秒</string>
 
   <string name="label_today">今天</string>
   <string name="label_yesterday">昨天</string>

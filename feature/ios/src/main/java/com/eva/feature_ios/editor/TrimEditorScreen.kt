@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -101,7 +102,9 @@ internal fun TrimEditorScreen(
 						onEvent(TrimEditorEvent.OnSelectionEndChange(ratio))
 					},
 					onDragFinished = { onEvent(TrimEditorEvent.OnSelectionChangeFinished) },
-					modifier = Modifier.padding(vertical = 8.dp),
+					modifier = Modifier
+						.padding(vertical = 8.dp)
+						.testTag("trim_waveform"),
 				)
 				Row(
 					modifier = Modifier.fillMaxWidth(),
@@ -120,6 +123,9 @@ internal fun TrimEditorScreen(
 				}
 				CupertinoIconButton(
 					glyph = if (isPlaying) CupertinoGlyph.PAUSE else CupertinoGlyph.PLAY,
+					contentDescription = stringResource(
+						if (isPlaying) R.string.recorder_pause else R.string.action_play
+					),
 					tint = colors.label,
 					buttonSize = 64.dp,
 					iconSize = 40.dp,

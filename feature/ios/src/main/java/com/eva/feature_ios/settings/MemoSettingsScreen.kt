@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.components.CupertinoActionSheet
@@ -121,6 +122,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnStereoChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_stereo"),
 							)
 						},
 					)
@@ -133,6 +135,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnSkipSilenceChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_skip_silence"),
 							)
 						},
 					)
@@ -145,6 +148,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnBluetoothMicChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_bluetooth_mic"),
 							)
 						},
 					)
@@ -157,6 +161,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnPauseOnCallChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_pause_on_call"),
 							)
 						},
 					)
@@ -169,6 +174,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnAddLocationChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_add_location"),
 							)
 						},
 					)

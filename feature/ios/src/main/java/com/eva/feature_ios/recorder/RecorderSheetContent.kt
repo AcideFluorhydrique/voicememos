@@ -93,6 +93,9 @@ internal fun RecorderSheetContent(
 			}
 			RecordButton(
 				isRecording = !isPaused,
+				contentDescription = stringResource(
+					if (isPaused) R.string.recorder_resume else R.string.recorder_pause
+				),
 				onClick = onToggleRecording,
 				buttonSize = 72.dp,
 			)

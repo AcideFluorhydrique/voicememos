@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -144,7 +145,9 @@ internal fun VoiceMemosScreen(
 		} else {
 			LazyColumn(
 				state = listState,
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.testTag("memos_list"),
 				contentPadding = PaddingValues(top = topInset + 44.dp),
 			) {
 				item(key = "large-title") {
@@ -157,7 +160,9 @@ internal fun VoiceMemosScreen(
 							onEvent(MemoScreenEvent.OnSearchQueryChange(query))
 						},
 						placeholder = stringResource(R.string.memos_search_placeholder),
-						modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+						modifier = Modifier
+							.padding(horizontal = 16.dp, vertical = 8.dp)
+							.testTag("memos_search"),
 					)
 				}
 				items(items = memos, key = { memo -> memo.id }) { memo ->
@@ -215,6 +220,7 @@ internal fun VoiceMemosScreen(
 			leading = {
 				CupertinoIconButton(
 					glyph = CupertinoGlyph.TRASH,
+					contentDescription = stringResource(R.string.menu_recently_deleted),
 					tint = colors.accent,
 					onClick = onNavigateToDeleted,
 				)
@@ -222,6 +228,7 @@ internal fun VoiceMemosScreen(
 			trailing = {
 				CupertinoIconButton(
 					glyph = CupertinoGlyph.GEAR,
+					contentDescription = stringResource(R.string.menu_settings),
 					tint = colors.accent,
 					onClick = onNavigateToSettings,
 				)
