@@ -127,3 +127,59 @@ jobs:
             **/build/outputs/logs/
             app/build/outputs/mapping/
           retention-days: 7
+
+  smoke:
+    name: Start on API ${{ matrix.api }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      # one level failing says nothing about the others, let them all finish
+      fail-fast: false
+      matrix:
+        # 29 is the lowest supported, 30 the first with scoped storage requests,
+        # 33 the first with the media permissions, 35 what the app was written against
+        api: [ 29, 30, 33, 35 ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # the debug APK always, the release one too when the signing key was there to build it
+      - name: Download the APKs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: voice-memos-*-apk
+          path: apks
+          merge-multiple: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # x86_64 runs at full speed under KVM, the APK carries no native code of its own, so a
+      # crash found here is one an arm phone of the same android version has as well
+      - name: Start the app in the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 4G
+          cores: 4
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash .github/scripts/emulator_smoke.sh apks emulator-results
+
+      - name: Upload the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-api${{ matrix.api }}
+          path: emulator-results/
+          if-no-files-found: ignore
+          retention-days: 14
