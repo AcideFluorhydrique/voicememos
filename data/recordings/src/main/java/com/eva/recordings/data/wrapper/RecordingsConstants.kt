@@ -8,6 +8,9 @@ import java.io.File
 
 internal object RecordingsConstants {
 
+	// same value as Environment.DIRECTORY_RECORDINGS, which is API 31 only
+	private const val DIRECTORY_RECORDINGS = "Recordings"
+
 	val AUDIO_VOLUME_URI: Uri
 		get() = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
 
@@ -15,9 +18,13 @@ internal object RecordingsConstants {
 	 * Every folder this app has ever recorded into, as LIKE patterns over the relative path.
 	 * Media store forgets who made a file once that install is removed, the folder is the
 	 * only thing left that says a recording is ours.
+	 *
+	 * The recordings folder is spelled out, [Environment.DIRECTORY_RECORDINGS] only exists from
+	 * android 12 and is not a compile time constant, reading it on android 10 or 11 throws
+	 * NoSuchFieldError.
 	 */
 	val RECORDINGS_FOLDER_PATTERNS: List<String>
-		get() = listOf(Environment.DIRECTORY_RECORDINGS, Environment.DIRECTORY_MUSIC)
+		get() = listOf(DIRECTORY_RECORDINGS, Environment.DIRECTORY_MUSIC)
 			.map { directory -> directory + File.separator + "RecorderApp" + File.separator + "%" }
 
 	// DON'T CHANGE
