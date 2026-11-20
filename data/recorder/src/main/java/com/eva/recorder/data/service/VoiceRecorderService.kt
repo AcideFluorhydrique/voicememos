@@ -122,6 +122,8 @@ internal class VoiceRecorderService : LifecycleService() {
 			readTimerAndUpdateNotification()
 			// update widget state
 			updateRecorderWidgetState()
+			// give up a recording the recorder failed on
+			observeRecorderErrors()
 			Log.i(LOGGER_TAG, "SERVICE CREATED WITH OBSERVERS")
 		} catch (e: Exception) {
 			e.printStackTrace()
@@ -166,6 +168,16 @@ internal class VoiceRecorderService : LifecycleService() {
 				RecorderState.COMPLETED -> notificationHelper.showRecordingDoneNotification()
 				else -> {}
 			}
+		}.launchIn(lifecycleScope)
+	}
+
+	private fun observeRecorderErrors() {
+		voiceRecorder.recorderErrors.onEach { what ->
+			val state = recorderState.value
+			if (state != RecorderState.RECORDING && state != RecorderState.PAUSED) return@onEach
+			Log.e(LOGGER_TAG, "RECORDER FAILED WHILE RECORDING :$what")
+			showSaveRecordingErrorMessage(getString(R.string.recorder_failed_while_recording))
+			onCancelRecording()
 		}.launchIn(lifecycleScope)
 	}
 

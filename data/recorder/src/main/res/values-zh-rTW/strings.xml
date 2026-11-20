@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="recorder_start_failed">無法開始錄音，此裝置不支援這個格式。</string>
+  <string name="recorder_failed_while_recording">錄音已停止，裝置無法繼續錄音。</string>
 </resources>

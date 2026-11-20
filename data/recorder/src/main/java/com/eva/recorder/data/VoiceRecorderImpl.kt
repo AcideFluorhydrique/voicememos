@@ -33,6 +33,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 private const val TAG = "VOICE_RECORDER"
 
@@ -81,9 +83,16 @@ internal class VoiceRecorderImpl(
 		get() = _stopWatch.recorderState
 			.flatMapLatest(_pcmReader::readAmplitudeBuffered)
 
+	private val _recorderErrors = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+	override val recorderErrors: Flow<Int>
+		get() = _recorderErrors.asSharedFlow()
+
 	private val errorListener = MediaRecorder.OnErrorListener { _, what, extra ->
 		if (what == MediaRecorder.MEDIA_ERROR_SERVER_DIED) releaseResources()
 		Log.w(TAG, "SOME ERROR OCCURRED :$what CODE: $extra")
+		// the encoder gave up, android 10 does it at times right after a resume, the
+		// timer used to run on over nothing until stop found no audio
+		_recorderErrors.tryEmit(what)
 	}
 
 	@Suppress("DEPRECATION")
@@ -320,10 +329,13 @@ internal class VoiceRecorderImpl(
 				// cancel the timer watch
 				Log.d(TAG, "STOPWATCH STOPPED")
 				_stopWatch.cancel()
-				//stop the ongoing recording
-				Log.d(TAG, "RECORDER STOPPED")
-				_recorder?.stop()
-				// delete the current recording
+				//stop the ongoing recording, a recorder that already failed throws here
+				try {
+					_recorder?.stop()
+				} catch (e: RuntimeException) {
+					Log.w(TAG, "RECORDER COULD NOT STOP, DISCARDING ANYWAY", e)
+				}
+				// delete the current recording and reset the recorder in any case
 				stopAndDeleteFileMetaData()
 				Log.d(TAG, "RECORDER STOPPED")
 			} catch (e: Exception) {

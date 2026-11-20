@@ -13,4 +13,5 @@
   <string name="toast_incoming_call">Incoming call</string>
   <string name="bookmarks_saved">Bookmarks Added</string>
   <string name="recorder_start_failed">The recording could not start, this format is not available on this device.</string>
+  <string name="recorder_failed_while_recording">The recording stopped, the device could not keep recording.</string>
 </resources>
