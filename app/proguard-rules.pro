@@ -32,3 +32,9 @@
 -keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
 	<fields>;
 }
+
+# media3 only touches LogSessionId, an android 12 class, behind version checks. R8 merged
+# transformer classes and widened their fields to Object, then cast those fields back to
+# LogSessionId on every version, android 11 failed to resolve the class and saving a trim
+# crashed the release build. Kept classes are still renamed and shrunk, only not merged.
+-keep,allowobfuscation,allowshrinking class androidx.media3.transformer.** { *; }
