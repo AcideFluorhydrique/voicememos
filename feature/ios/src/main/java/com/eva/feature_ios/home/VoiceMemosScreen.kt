@@ -28,6 +28,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,12 +100,13 @@ internal fun VoiceMemosScreen(
 	)
 	val micPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
 
-	var showRecorderSheet by remember { mutableStateOf(false) }
+	// rotating recreates the activity, the recorder sheet closed while the recording went on
+	var showRecorderSheet by rememberSaveable { mutableStateOf(false) }
 	var showOverflowSheet by remember { mutableStateOf(false) }
 	var memoForActions by remember { mutableStateOf<RecordedVoiceModel?>(null) }
 	var memoToRename by remember { mutableStateOf<RecordedVoiceModel?>(null) }
 	var memoToDelete by remember { mutableStateOf<RecordedVoiceModel?>(null) }
-	var showDiscardAlert by remember { mutableStateOf(false) }
+	var showDiscardAlert by rememberSaveable { mutableStateOf(false) }
 	var revealedMemoId by remember { mutableStateOf<Long?>(null) }
 
 	val isRecorderBusy = recorderState == RecorderState.RECORDING ||
