@@ -7,7 +7,7 @@
   <a href="https://github.com/AcideFluorhydrique/voicememos/releases">
     <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_github.png" alt="Get it on GitHub" height="70" />
   </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://f-droid.org/en/packages/io.github.acidefluorhydrique.voicememos/">
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/AcideFluorhydrique/voicememos/releases">
     <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_obtainium.png" alt="Get it on Obtainium" height="70" />
   </a>
 </p>
