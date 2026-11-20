@@ -174,7 +174,9 @@ def matches(node, text=None, desc=None, rid=None, label=None, contains=None, pac
             cls=None):
 	if cls is not None and node.cls != cls:
 		return False
-	if text is not None and node.text.casefold() != text.casefold():
+	# a clickable node whose text got clipped away still carries its label as description
+	if text is not None and node.text.casefold() != text.casefold() \
+			and not (not node.text and node.desc.casefold() == text.casefold()):
 		return False
 	if desc is not None and node.desc.casefold() != desc.casefold():
 		return False
@@ -614,8 +616,8 @@ def step_notification_buttons():
 
 
 def step_play_seek_speed():
+	# like iOS a memo starts playing as soon as it is opened
 	expand(STATE['recorded'])
-	tap(rid='player_play', pause=.3)
 	timeline = []
 	for _ in range(8):
 		nodes = dump()
@@ -626,16 +628,28 @@ def step_play_seek_speed():
 		if play is not None and play.desc.casefold() == 'pause':
 			break
 		time.sleep(1)
-	print('  player after play: ' + ', '.join(timeline), flush=True)
+	print('  player after opening: ' + ', '.join(timeline), flush=True)
 	assert any(t.lower().startswith('pause') for t in timeline), \
-		f'the player never showed itself playing: {timeline}'
+		f'opening the memo did not start it: {timeline}'
 	shot('playing')
+	# pause and play again by hand
+	tap(rid='player_play')
+	wait_for(rid='player_play', desc='Play')
+	tap(rid='player_play')
+	wait_for(rid='player_play', desc='Pause')
 	tap(rid='player_skip_forward')
 	tap(rid='player_skip_back')
-	speeds = []
+	def speed_label():
+		nodes = dump()
+		button = find(nodes, rid='player_speed')
+		labels = [n.text for n in nodes if '×' in n.text and button is not None
+		          and abs(n.center[0] - button.center[0]) < 80 and abs(n.center[1] - button.center[1]) < 80]
+		return labels[0] if labels else '?'
+
+	speeds = [speed_label()]
 	for _ in range(4):
-		speeds.append(tap(rid='player_speed').text)
-	speeds.append(wait_for(rid='player_speed').text)
+		tap(rid='player_speed')
+		speeds.append(speed_label())
 	assert len(set(speeds)) == 4, f'the speed button went through {speeds}'
 	bar = wait_for(rid='player_waveform')
 	sh(f'input tap {bar.x1 + (bar.x2 - bar.x1) // 2} {bar.center[1]}')
