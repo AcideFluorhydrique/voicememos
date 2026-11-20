@@ -36,6 +36,9 @@ import java.io.IOException
 
 private const val TAG = "VOICE_RECORDER"
 
+// the rate opus encodes at internally, the one every android version accepts
+private const val OPUS_SAMPLE_RATE = 48_000
+
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class VoiceRecorderImpl(
 	private val context: Context,
@@ -164,7 +167,11 @@ internal class VoiceRecorderImpl(
 			setAudioEncoder(format.encoder)
 			setAudioChannels(channelCount)
 			// recording quality
-			setAudioSamplingRate(quality.sampleRate)
+			// opus takes 8, 12, 16, 24 or 48 kHz only, android 10 fails to create the encoder at
+			// the 44.1 kHz of the normal and low qualities, later versions resample on their own
+			setAudioSamplingRate(
+				if (format == RecordFormats.OGG) OPUS_SAMPLE_RATE else quality.sampleRate
+			)
 			setAudioEncodingBitRate(quality.bitRate)
 			//set location can only add location to mp4 and 3gp files
 			if (locationResult != null && locationResult.isSuccess) {
