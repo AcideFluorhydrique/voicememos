@@ -225,8 +225,23 @@ def tap_node(node, pause=1.2):
 	time.sleep(pause)
 
 
+def bounds(node):
+	return node.x1, node.y1, node.x2, node.y2
+
+
 def tap(timeout=15, pause=1.2, **query):
+	"""Tap a node once it stopped moving.
+
+	Sheets slide up and dialogs move with the keyboard, a tap on where a control was a
+	moment ago lands on the scrim and dismisses the sheet or the dialog instead.
+	"""
 	node = wait_for(timeout=timeout, **query)
+	for _ in range(8):
+		time.sleep(.35)
+		again = find(**query)
+		if again is not None and bounds(again) == bounds(node):
+			break
+		node = again or node
 	tap_node(node, pause)
 	return node
 
@@ -252,6 +267,7 @@ def tap_in_dialog(title, text, timeout=15):
 			again = [n for n in find_all(text=text) + find_all(desc=text)
 			         if (n.x1, n.y1, n.x2, n.y2) == (target.x1, target.y1, target.x2, target.y2)]
 			if again:
+				print(f'  dialog {title!r}: tapping {text!r} at {bounds(target)}', flush=True)
 				tap_node(target)
 				return
 		if time.time() > deadline:
@@ -262,7 +278,16 @@ def tap_in_dialog(title, text, timeout=15):
 def tap_lowest(text, timeout=15):
 	"""Tap the lowest node showing text, the one in a sheet rising from the bottom."""
 	wait_for(text=text, timeout=timeout)
-	tap_node(max(find_all(text=text), key=lambda n: n.y1))
+	node = max(find_all(text=text), key=lambda n: n.y1)
+	# the sheet slides up, wait for it to stop before tapping
+	for _ in range(8):
+		time.sleep(.35)
+		found = find_all(text=text)
+		again = max(found, key=lambda n: n.y1) if found else node
+		if bounds(again) == bounds(node):
+			break
+		node = again
+	tap_node(node)
 
 
 def swipe(x1, y1, x2, y2, ms=350):
@@ -677,6 +702,7 @@ def step_rename():
 	clear_field()
 	type_text(new_title)
 	shot('rename-dialog')
+	hide_keyboard()
 	tap_in_dialog('Name', 'Save')
 	wait_memo(new_title)
 	STATE['recorded'] = new_title
@@ -816,6 +842,7 @@ def step_change_one_left_behind():
 	tap_node(field)
 	clear_field()
 	type_text(renamed)
+	hide_keyboard()
 	tap_in_dialog('Name', 'Save')
 	shot('system-write-approval')
 	assert allow_system_dialog(timeout=10), 'the system never asked to approve the rename'
@@ -918,6 +945,7 @@ def step_settings_file_name():
 	tap_node(field)
 	clear_field()
 	type_text('E2E')
+	hide_keyboard()
 	tap_in_dialog('Name', 'Save')
 	wait_for(text='E2E')
 	shot('settings-file-name')
