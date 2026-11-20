@@ -29,8 +29,11 @@ interface VoiceRecorder {
 
 	/**
 	 * Start recording
+	 *
+	 * @return a failure when the recorder could not start, for one a format the device has no
+	 * encoder for, nothing is left running then
 	 */
-	suspend fun startRecording()
+	suspend fun startRecording(): Result<Unit>
 
 	/**
 	 * Stop the running recording

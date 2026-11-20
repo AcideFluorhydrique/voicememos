@@ -229,8 +229,8 @@ internal class VoiceRecorderImpl(
 		}
 	}
 
-	override suspend fun startRecording() {
-		_lock.tryWithLock(this) {
+	override suspend fun startRecording(): Result<Unit> {
+		return _lock.tryWithLock(this) {
 			// current uri is already set cannot set it again
 			if (_recordingFile != null) {
 				Log.d(TAG, "CURRENT URI IS ALREADY SET")
@@ -239,14 +239,23 @@ internal class VoiceRecorderImpl(
 			_stopWatch.prepare()
 			Log.i(TAG, "PREPARING FILE FOR RECORDING")
 			initiateRecorderParams()
-			// prepare the recorder
-			_recorder?.prepare()
-			Log.d(TAG, "RECORDER PREPARED")
-			//start the recorder
-			_stopWatch.startOrResume()
-			_pcmReader.startRecorder()
-			_recorder?.start()
-			Log.d(TAG, "RECORDER STARTED")
+			try {
+				// prepare the recorder
+				_recorder?.prepare()
+				Log.d(TAG, "RECORDER PREPARED")
+				//start the recorder
+				_stopWatch.startOrResume()
+				_pcmReader.startRecorder()
+				_recorder?.start()
+				Log.d(TAG, "RECORDER STARTED")
+			} catch (e: Exception) {
+				// a format without an encoder on this device, opus on android 10, fails here,
+				// the timer ran on and stopping later found no audio, everything is undone now
+				Log.e(TAG, "RECORDER FAILED TO START", e)
+				_stopWatch.cancel()
+				stopAndDeleteFileMetaData()
+				throw e
+			}
 		}
 	}
 

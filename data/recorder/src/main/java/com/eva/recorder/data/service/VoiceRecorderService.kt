@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.eva.bookmarks.domain.provider.RecordingBookmarksProvider
+import com.eva.recorder.R
 import com.eva.recorder.domain.RecorderWidgetInteractor
 import com.eva.recorder.domain.VoiceRecorder
 import com.eva.recorder.domain.models.RecordedPoint
@@ -15,6 +16,7 @@ import com.eva.recorder.domain.models.RecorderState
 import com.eva.use_case.usecases.BluetoothScoUseCase
 import com.eva.use_case.usecases.PhoneStateObserverUseCase
 import com.eva.utils.NotificationConstants
+import com.eva.utils.OwnersHoldLockException
 import com.eva.utils.Resource
 import com.eva.utils.roundToClosestSeconds
 import com.eva.utils.toDuration
@@ -184,7 +186,17 @@ internal class VoiceRecorderService : LifecycleService() {
 			notificationHelper.timerNotification
 		)
 		//start the recorder
-		lifecycleScope.launch { voiceRecorder.startRecording() }
+		lifecycleScope.launch {
+			voiceRecorder.startRecording().onFailure { error ->
+				// a second start while the first is still busy, that one carries on
+				if (error is OwnersHoldLockException) return@onFailure
+				Log.e(LOGGER_TAG, "RECORDING DID NOT START", error)
+				showSaveRecordingErrorMessage(getString(R.string.recorder_start_failed))
+				widgetFacade.resetWidget()
+				stopForeground(STOP_FOREGROUND_REMOVE)
+				stopSelf()
+			}
+		}
 	}
 
 	override fun onUnbind(intent: Intent?): Boolean {

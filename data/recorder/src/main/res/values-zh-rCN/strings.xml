@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="recorder_start_failed">无法开始录音，此设备不支持这个格式。</string>
+</resources>
