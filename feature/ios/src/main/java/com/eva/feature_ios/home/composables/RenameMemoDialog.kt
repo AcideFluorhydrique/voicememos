@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -136,6 +138,8 @@ private fun DialogButton(
 
 	Box(
 		modifier = modifier
+			// the label stays on the clickable node, android 10 clips the dialog's text away
+			.semantics { contentDescription = text }
 			.pressable(pressedAlpha = .5f, onClick = onClick)
 			.heightIn(min = 44.dp)
 			.padding(vertical = 12.dp),
