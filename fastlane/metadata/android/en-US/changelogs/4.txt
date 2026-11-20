@@ -1,0 +1,5 @@
+Fixed the app closing as soon as it opened on Android 10 and 11.
+
+Also fixed on older Android: saving a trimmed recording, a crash when saving a trim, renaming to a name already in use, and renaming or deleting recordings an earlier install left behind. Opus is offered from Android 11, Android 10 cannot record it.
+
+Recording stops with a message when the microphone fails, rotating keeps the recorder open, Settings works in landscape, and the buttons have TalkBack labels.
