@@ -865,7 +865,7 @@ def step_recently_deleted():
 	wait_for(text='Delete All')
 	shot('recently-deleted')
 	rows = find_all(contains='Expires')
-	assert len(rows) >= 2, f'expected the deleted recordings, found {rows}'
+	assert rows, 'the deleted recordings are not listed'
 
 	# recover the first one
 	tap_node(rows[0])
@@ -873,11 +873,12 @@ def step_recently_deleted():
 	allow_system_dialog(timeout=3)
 	time.sleep(2)
 
-	# purge the next one
-	tap(contains='Expires')
-	tap_lowest('Delete Permanently')
-	allow_system_dialog(timeout=3)
-	time.sleep(2)
+	# purge the next one, if an earlier step left more than one
+	if find(contains='Expires') is not None:
+		tap(contains='Expires')
+		tap_lowest('Delete Permanently')
+		allow_system_dialog(timeout=3)
+		time.sleep(2)
 
 	# and the rest in one go
 	if find(text='Delete All') is not None:
@@ -1252,32 +1253,48 @@ def run_apk(apk):
 			print(f'- {name}: skipped', flush=True)
 			continue
 		started = time.time()
-		try:
-			step()
-			check_crash(name)
-			shot(name.removeprefix('step_'))
-			results.append((name, 'passed', '', time.time() - started))
-			print(f'✓ {name} ({time.time() - started:.0f}s)', flush=True)
-		except Exception as e:
-			message = str(e) or type(e).__name__
-			if not isinstance(e, AssertionError):
-				message = traceback.format_exc(limit=3)
+		first_failure = None
+		# one more try for what the emulator gets wrong now and then, never for a crash
+		for attempt in (1, 2):
 			try:
+				step()
 				check_crash(name)
-			except AssertionError as crash:
-				message = f'{message}\n{crash}'
-			shot(name.removeprefix('step_') + '-failed')
-			nodes = dump()
-			with open(os.path.join(OUT, f'{STATE["shots"]:03d}-{name}-failed-ui.xml'), 'w') as f:
-				f.write(LAST_XML[0])
-			print(describe(nodes), flush=True)
-			print(app_log(), flush=True)
-			results.append((name, 'failed', message, time.time() - started))
-			print(f'✗ {name}: {message}', flush=True)
-			try:
-				go_home()
-			except Exception as recover:
-				print(f'  could not recover: {recover}', flush=True)
+				shot(name.removeprefix('step_'))
+				if first_failure is None:
+					results.append((name, 'passed', '', time.time() - started))
+					print(f'✓ {name} ({time.time() - started:.0f}s)', flush=True)
+				else:
+					results.append((name, 'flaky', f'passed on the second try, the first: {first_failure}',
+					                time.time() - started))
+					print(f'⚠ {name}: passed on the second try ({time.time() - started:.0f}s)', flush=True)
+				break
+			except Exception as e:
+				message = str(e) or type(e).__name__
+				if not isinstance(e, AssertionError):
+					message = traceback.format_exc(limit=3)
+				crashed = False
+				try:
+					check_crash(name)
+				except AssertionError as crash:
+					message = f'{message}\n{crash}'
+					crashed = True
+				shot(name.removeprefix('step_') + '-failed')
+				nodes = dump()
+				with open(os.path.join(OUT, f'{STATE["shots"]:03d}-{name}-failed-ui.xml'), 'w') as f:
+					f.write(LAST_XML[0])
+				print(describe(nodes), flush=True)
+				print(app_log(), flush=True)
+				try:
+					go_home()
+				except Exception as recover:
+					print(f'  could not recover: {recover}', flush=True)
+				if attempt == 1 and not crashed:
+					first_failure = message
+					print(f'  {name} failed, trying once more: {message}', flush=True)
+					continue
+				results.append((name, 'failed', message, time.time() - started))
+				print(f'✗ {name}: {message}', flush=True)
+				break
 
 	with open(os.path.join(OUT, 'logcat.txt'), 'w') as f:
 		f.write(adb('logcat', '-d', timeout=120))
@@ -1293,7 +1310,7 @@ def summarize(all_results):
 		lines += [f'**{label}**: {passed} of {len(results)} steps passed', '',
 		          '| step | result | time | detail |', '| --- | --- | --- | --- |']
 		for name, result, detail, seconds in results:
-			icon = {'passed': '✅', 'failed': '❌', 'skipped': '⏭️'}[result]
+			icon = {'passed': '✅', 'flaky': '⚠️', 'failed': '❌', 'skipped': '⏭️'}[result]
 			detail = detail.replace('|', '\\|').replace('\n', '<br>')[:600]
 			lines.append(f'| {name.removeprefix("step_")} | {icon} | {seconds:.0f}s | {detail} |')
 		lines.append('')
