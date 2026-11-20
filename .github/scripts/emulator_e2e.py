@@ -245,8 +245,15 @@ def tap_in_dialog(title, text, timeout=15):
 		else:
 			below = []
 		if below:
-			tap_node(min(below, key=lambda n: n.y1 - heading.y1))
-			return
+			target = min(below, key=lambda n: n.y1 - heading.y1)
+			time.sleep(.6)
+			# the keyboard moves the dialog up, a tap on where the button was misses the
+			# dialog and dismisses it, only tap a button that stayed in place
+			again = [n for n in find_all(text=text) + find_all(desc=text)
+			         if (n.x1, n.y1, n.x2, n.y2) == (target.x1, target.y1, target.x2, target.y2)]
+			if again:
+				tap_node(target)
+				return
 		if time.time() > deadline:
 			raise AssertionError(f'no {text!r} under {title!r}')
 		time.sleep(.7)
@@ -670,7 +677,7 @@ def step_rename():
 	clear_field()
 	type_text(new_title)
 	shot('rename-dialog')
-	tap(text='Save')
+	tap_in_dialog('Name', 'Save')
 	wait_memo(new_title)
 	STATE['recorded'] = new_title
 
@@ -734,7 +741,7 @@ def step_trim_and_save():
 	assert save.enabled, 'save stayed disabled after a trim'
 	tap_node(save)
 	deadline = time.time() + 60
-	while time.time() < deadline and find(text='Edit Recording') is not None:
+	while time.time() < deadline and find(rid='trim_waveform') is not None:
 		time.sleep(1)
 	wait_new_recording(before, timeout=30)
 	go_home()
@@ -762,7 +769,8 @@ def step_trim_delete_section_and_cancel():
 	tap(text='Delete')
 	shot('trim-delete-section')
 	tap(text='Cancel')
-	wait_for(text='Edit Recording', gone=True)
+	# the player card's trim button carries the same label, the editor's waveform does not
+	wait_for(rid='trim_waveform', gone=True)
 	wait_for(rid='record_button')
 
 
@@ -802,9 +810,14 @@ def step_delete_one_left_behind():
 	swipe(w * .85, row.center[1], w * .1, row.center[1], ms=400)
 	tap(rid='swipe_delete')
 	delete_alert()
-	if API >= 30:
-		shot('system-trash-approval')
-		assert allow_system_dialog(timeout=10), 'the system never asked to approve the delete'
+	if API < 30:
+		# android 10 offers no way to approve it, the app says so and keeps the recording
+		time.sleep(3)
+		shot('left-behind-refused')
+		wait_memo(SEED_TITLE)
+		return
+	shot('system-trash-approval')
+	assert allow_system_dialog(timeout=10), 'the system never asked to approve the delete'
 	wait_memo(SEED_TITLE, gone=True)
 
 
@@ -893,7 +906,7 @@ def step_settings_file_name():
 	tap_node(field)
 	clear_field()
 	type_text('E2E')
-	tap(text='Save')
+	tap_in_dialog('Name', 'Save')
 	wait_for(text='E2E')
 	shot('settings-file-name')
 	settings_back()
@@ -939,6 +952,16 @@ def step_every_format():
 		try:
 			set_format(label, quality, stereo)
 			before = recordings()
+			if label == 'Opus' and API < 30:
+				tap(rid='record_button')
+				# the sheet may flash open, it has to close with nothing left recording
+				time.sleep(4)
+				assert find(text='New Recording') is None, 'the recorder sheet stayed open'
+				assert find(rid='recording_indicator') is None, 'a recording is still running'
+				assert set(recordings()) == set(before), 'opus left a file on android 10'
+				print(f'  {what}: refused on android 10 as expected', flush=True)
+				shot('format-opus-refused')
+				continue
 			start_recording()
 			time.sleep(3)
 			tap(text='Done')
