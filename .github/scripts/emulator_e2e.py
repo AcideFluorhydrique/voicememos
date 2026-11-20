@@ -473,11 +473,15 @@ def wait_memo(title, timeout=15, gone=False):
 
 
 def player_of(row, nodes=None):
-	"""The play button of the card under row, if that row is the open one."""
+	"""The play button of the open card, if the card belongs to row.
+
+	The card hangs under its own row, so the row right above the play button owns it.
+	"""
 	nodes = dump() if nodes is None else nodes
-	_, h = screen_size()
+	rows = find_all(nodes, rid='memo_row')
 	for play in find_all(nodes, rid='player_play'):
-		if 0 <= play.y1 - row.y2 < h * .3:
+		above = [r for r in rows if r.y2 <= play.y1]
+		if above and max(above, key=lambda r: r.y2).y1 == row.y1:
 			return play
 	return None
 
@@ -518,8 +522,14 @@ def open_more(title):
 
 
 def step_start():
-	launch()
-	wait_for(rid='record_button', timeout=40)
+	for attempt in range(3):
+		launch()
+		try:
+			wait_for(rid='record_button', timeout=20)
+			break
+		except AssertionError:
+			if attempt == 2:
+				raise
 	wait_memo(SEED_TITLE, timeout=20)
 
 
@@ -580,7 +590,14 @@ def step_notification_buttons():
 	time.sleep(11)
 	sh('cmd statusbar expand-notifications')
 	time.sleep(2)
-	wait_for(rid='notification_text', contains='running', timeout=25)
+	deadline = time.time() + 30
+	while find(rid='notification_text', contains='running') is None:
+		# android 13 and up group the app's notifications and collapse the group
+		for button in find_all(desc='Expand', package='com.android.systemui'):
+			tap_node(button, pause=1)
+		if time.time() > deadline:
+			raise AssertionError('the recorder notification never showed up')
+		time.sleep(2)
 	shot('notification-running')
 	# the buttons are images, they carry the app's ids and descriptions
 	tap(rid='pause_button', timeout=10)
@@ -598,9 +615,20 @@ def step_notification_buttons():
 
 def step_play_seek_speed():
 	expand(STATE['recorded'])
-	tap(rid='player_play')
-	wait_for(rid='player_play', desc='Pause')
-	time.sleep(2)
+	tap(rid='player_play', pause=.3)
+	timeline = []
+	for _ in range(8):
+		nodes = dump()
+		play = find(nodes, rid='player_play')
+		clocks = [n.text for n in nodes if re.fullmatch(r'-?\d+:\d\d', n.text)
+		          and play is not None and abs(n.center[1] - play.center[1]) < 260]
+		timeline.append(f'{play.desc if play else "?"} {"/".join(clocks)}')
+		if play is not None and play.desc.casefold() == 'pause':
+			break
+		time.sleep(1)
+	print('  player after play: ' + ', '.join(timeline), flush=True)
+	assert any(t.lower().startswith('pause') for t in timeline), \
+		f'the player never showed itself playing: {timeline}'
 	shot('playing')
 	tap(rid='player_skip_forward')
 	tap(rid='player_skip_back')
@@ -669,7 +697,7 @@ def step_share():
 	shot('share-sheet')
 	back()
 	time.sleep(1)
-	wait_for(rid='record_button')
+	go_home()
 
 
 def step_trim_and_save():
@@ -902,7 +930,11 @@ def step_every_format():
 def rotate(quarter):
 	sh('settings put system accelerometer_rotation 0')
 	sh(f'settings put system user_rotation {quarter}')
-	time.sleep(3)
+	time.sleep(4)
+	# the activity is recreated, wait for the app to be drawn again
+	deadline = time.time() + 15
+	while time.time() < deadline and find(package=PKG) is None:
+		time.sleep(1)
 
 
 def step_rotation():
@@ -954,9 +986,7 @@ def step_killed_in_background():
 def step_deep_links():
 	sh(f'am start -W -a android.intent.action.VIEW -d app://voicememos/recordings {PKG}')
 	wait_for(rid='record_button')
-	found = recordings()
-	audio_id = next((i for n, (i, _) in found.items() if title_of(n) == STATE['recorded']),
-	                next(iter(found.values()))[0])
+	audio_id = max(i for i, _ in recordings().values())
 	sh(f'am start -W -a android.intent.action.VIEW -d app://voicememos/player/{audio_id} {PKG}')
 	wait_for(rid='player_play', timeout=20)
 	shot('deep-link-player')
@@ -986,8 +1016,11 @@ def step_microphone_refused():
 
 
 def step_media_access_refused():
-	media = 'android.permission.READ_MEDIA_AUDIO' if API >= 33 else 'android.permission.READ_EXTERNAL_STORAGE'
-	sh(f'pm revoke {PKG} {media}')
+	media = (['android.permission.READ_MEDIA_AUDIO'] if API >= 33 else
+	         # one group below android 13, revoking only read leaves the group granted
+	         ['android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE'])
+	for permission in media:
+		sh(f'pm revoke {PKG} {permission}')
 	time.sleep(1)
 	launch()
 	wait_for(text='Allow Access', timeout=30)
@@ -1054,6 +1087,15 @@ def describe(nodes):
 			lines.append(f'    w{n.window} {n.cls.split(".")[-1]} text={n.text!r} desc={n.desc!r} '
 			             f'id={n.rid!r} at {n.center}{pkg}')
 	return '\n'.join(lines[:80])
+
+
+def app_log(lines=30):
+	"""The app's latest warnings and errors, what it said while the step failed."""
+	pid = sh(f'pidof {PKG}').strip().split()
+	if not pid:
+		return '  app log: the app is not running'
+	out = adb('logcat', '-d', '-t', '2000', f'--pid={pid[0]}', '*:W').splitlines()
+	return '  app log:\n' + '\n'.join('    ' + l for l in out[-lines:])
 
 
 def check_crash(where):
@@ -1138,6 +1180,7 @@ def run_apk(apk):
 			with open(os.path.join(OUT, f'{STATE["shots"]:03d}-{name}-failed-ui.xml'), 'w') as f:
 				f.write(LAST_XML[0])
 			print(describe(nodes), flush=True)
+			print(app_log(), flush=True)
 			results.append((name, 'failed', message, time.time() - started))
 			print(f'✗ {name}: {message}', flush=True)
 			try:
