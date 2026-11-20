@@ -28,9 +28,18 @@ interface VoiceRecorder {
 	val recorderTimer: StateFlow<LocalTime>
 
 	/**
-	 * Start recording
+	 * Errors media recorder reported while recording, the `what` of its error listener.
+	 * The recorder is of no use after one, the recording has to be given up.
 	 */
-	suspend fun startRecording()
+	val recorderErrors: Flow<Int>
+
+	/**
+	 * Start recording
+	 *
+	 * @return a failure when the recorder could not start, for one a format the device has no
+	 * encoder for, nothing is left running then
+	 */
+	suspend fun startRecording(): Result<Unit>
 
 	/**
 	 * Stop the running recording

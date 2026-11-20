@@ -1,5 +1,6 @@
 package com.eva.feature_ios.settings
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.components.CupertinoActionSheet
@@ -47,8 +50,8 @@ internal fun MemoSettingsScreen(
 ) {
 	val colors = CupertinoTheme.colors
 
-	var showEncoderSheet by remember { mutableStateOf(false) }
-	var showPrefixDialog by remember { mutableStateOf(false) }
+	var showEncoderSheet by rememberSaveable { mutableStateOf(false) }
+	var showPrefixDialog by rememberSaveable { mutableStateOf(false) }
 
 	Column(
 		modifier = modifier
@@ -108,7 +111,7 @@ internal fun MemoSettingsScreen(
 					CupertinoSeparator()
 					CupertinoRow(
 						title = stringResource(R.string.settings_encoder),
-						detail = audioSettings.encoders.label,
+						detail = audioSettings.encoders.recordedAs.label,
 						showChevron = true,
 						onClick = { showEncoderSheet = true },
 					)
@@ -121,6 +124,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnStereoChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_stereo"),
 							)
 						},
 					)
@@ -133,6 +137,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnSkipSilenceChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_skip_silence"),
 							)
 						},
 					)
@@ -145,6 +150,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnBluetoothMicChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_bluetooth_mic"),
 							)
 						},
 					)
@@ -157,6 +163,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnPauseOnCallChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_pause_on_call"),
 							)
 						},
 					)
@@ -169,6 +176,7 @@ internal fun MemoSettingsScreen(
 								onCheckedChange = { enabled ->
 									onEvent(MemoSettingsEvent.OnAddLocationChange(enabled))
 								},
+								modifier = Modifier.testTag("switch_add_location"),
 							)
 						},
 					)
@@ -200,10 +208,10 @@ internal fun MemoSettingsScreen(
 			title = stringResource(R.string.settings_encoder),
 			onDismissRequest = { showEncoderSheet = false },
 			cancelText = stringResource(R.string.action_cancel),
-			actions = RecordingEncoders.entries.map { encoder ->
+			actions = RecordingEncoders.entries.filter { it.isAvailable }.map { encoder ->
 				CupertinoDialogAction(
 					text = encoder.label,
-					isPreferred = encoder == audioSettings.encoders,
+					isPreferred = encoder == audioSettings.encoders.recordedAs,
 					onClick = { onEvent(MemoSettingsEvent.OnEncoderChange(encoder)) },
 				)
 			},
@@ -236,6 +244,17 @@ private fun qualityLabel(quality: RecordQuality): String = stringResource(
 		RecordQuality.HIGH -> R.string.settings_quality_high
 	}
 )
+
+/**
+ * Android 10 lists no Opus encoder for media recorder, a recording in it never starts, so
+ * the format is only offered from android 11
+ */
+private val RecordingEncoders.isAvailable: Boolean
+	get() = this != RecordingEncoders.OPTUS || Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+
+/**What the recorder really uses, an Opus setting carried over to android 10 records AAC*/
+private val RecordingEncoders.recordedAs: RecordingEncoders
+	get() = if (isAvailable) this else RecordingEncoders.ACC
 
 /**Codec names are shown the way a listener would recognise them*/
 internal val RecordingEncoders.label: String

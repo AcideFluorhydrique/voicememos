@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.theme.CupertinoTheme
@@ -39,7 +42,8 @@ fun <T> CupertinoSegmentedControl(
 				modifier = Modifier
 					.weight(1f)
 					.height(28.dp)
-					.pressable(pressedAlpha = .6f) { onSelect(option) }
+					.semantics { this.selected = isSelected }
+					.pressable(pressedAlpha = .6f, role = Role.Tab) { onSelect(option) }
 					.background(
 						color = if (isSelected) colors.secondaryGroupedBackground
 						else androidx.compose.ui.graphics.Color.Transparent,

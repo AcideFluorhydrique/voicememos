@@ -33,8 +33,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 private const val TAG = "VOICE_RECORDER"
+
+// the rate opus encodes at internally, the one every android version accepts
+private const val OPUS_SAMPLE_RATE = 48_000
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class VoiceRecorderImpl(
@@ -78,9 +83,16 @@ internal class VoiceRecorderImpl(
 		get() = _stopWatch.recorderState
 			.flatMapLatest(_pcmReader::readAmplitudeBuffered)
 
+	private val _recorderErrors = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+	override val recorderErrors: Flow<Int>
+		get() = _recorderErrors.asSharedFlow()
+
 	private val errorListener = MediaRecorder.OnErrorListener { _, what, extra ->
 		if (what == MediaRecorder.MEDIA_ERROR_SERVER_DIED) releaseResources()
 		Log.w(TAG, "SOME ERROR OCCURRED :$what CODE: $extra")
+		// the encoder gave up, android 10 does it at times right after a resume, the
+		// timer used to run on over nothing until stop found no audio
+		_recorderErrors.tryEmit(what)
 	}
 
 	@Suppress("DEPRECATION")
@@ -164,7 +176,11 @@ internal class VoiceRecorderImpl(
 			setAudioEncoder(format.encoder)
 			setAudioChannels(channelCount)
 			// recording quality
-			setAudioSamplingRate(quality.sampleRate)
+			// opus takes 8, 12, 16, 24 or 48 kHz only, android 10 fails to create the encoder at
+			// the 44.1 kHz of the normal and low qualities, later versions resample on their own
+			setAudioSamplingRate(
+				if (format == RecordFormats.OGG) OPUS_SAMPLE_RATE else quality.sampleRate
+			)
 			setAudioEncodingBitRate(quality.bitRate)
 			//set location can only add location to mp4 and 3gp files
 			if (locationResult != null && locationResult.isSuccess) {
@@ -222,8 +238,8 @@ internal class VoiceRecorderImpl(
 		}
 	}
 
-	override suspend fun startRecording() {
-		_lock.tryWithLock(this) {
+	override suspend fun startRecording(): Result<Unit> {
+		return _lock.tryWithLock(this) {
 			// current uri is already set cannot set it again
 			if (_recordingFile != null) {
 				Log.d(TAG, "CURRENT URI IS ALREADY SET")
@@ -232,14 +248,23 @@ internal class VoiceRecorderImpl(
 			_stopWatch.prepare()
 			Log.i(TAG, "PREPARING FILE FOR RECORDING")
 			initiateRecorderParams()
-			// prepare the recorder
-			_recorder?.prepare()
-			Log.d(TAG, "RECORDER PREPARED")
-			//start the recorder
-			_stopWatch.startOrResume()
-			_pcmReader.startRecorder()
-			_recorder?.start()
-			Log.d(TAG, "RECORDER STARTED")
+			try {
+				// prepare the recorder
+				_recorder?.prepare()
+				Log.d(TAG, "RECORDER PREPARED")
+				//start the recorder
+				_stopWatch.startOrResume()
+				_pcmReader.startRecorder()
+				_recorder?.start()
+				Log.d(TAG, "RECORDER STARTED")
+			} catch (e: Exception) {
+				// a format without an encoder on this device, opus on android 10, fails here,
+				// the timer ran on and stopping later found no audio, everything is undone now
+				Log.e(TAG, "RECORDER FAILED TO START", e)
+				_stopWatch.cancel()
+				stopAndDeleteFileMetaData()
+				throw e
+			}
 		}
 	}
 
@@ -251,9 +276,17 @@ internal class VoiceRecorderImpl(
 			Log.d(TAG, "STOPWATCH STOPPED")
 			_stopWatch.stop()
 			//stop the ongoing recording
-			_recorder?.stop()
+			try {
+				_recorder?.stop()
+			} catch (e: RuntimeException) {
+				// media recorder throws on purpose when not a single frame reached it, a codec
+				// that never produced anything or a stop right after the start, there is no file
+				// worth keeping and the recorder has to be reset before the next recording
+				Log.e(TAG, "RECORDER STOPPED WITHOUT ANY AUDIO", e)
+				stopAndDeleteFileMetaData()
+				return Result.failure(e)
+			}
 			Log.d(TAG, "RECORDER STOPPED")
-			Result.success(0L)
 			// update the file
 			updateRecordingToExternalStorage(file)
 		}
@@ -296,10 +329,13 @@ internal class VoiceRecorderImpl(
 				// cancel the timer watch
 				Log.d(TAG, "STOPWATCH STOPPED")
 				_stopWatch.cancel()
-				//stop the ongoing recording
-				Log.d(TAG, "RECORDER STOPPED")
-				_recorder?.stop()
-				// delete the current recording
+				//stop the ongoing recording, a recorder that already failed throws here
+				try {
+					_recorder?.stop()
+				} catch (e: RuntimeException) {
+					Log.w(TAG, "RECORDER COULD NOT STOP, DISCARDING ANYWAY", e)
+				}
+				// delete the current recording and reset the recorder in any case
 				stopAndDeleteFileMetaData()
 				Log.d(TAG, "RECORDER STOPPED")
 			} catch (e: Exception) {

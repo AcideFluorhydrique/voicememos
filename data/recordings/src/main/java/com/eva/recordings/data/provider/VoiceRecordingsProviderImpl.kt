@@ -246,6 +246,43 @@ internal class VoiceRecordingsProviderImpl(
 		}
 	}
 
+	/**
+	 * [baseName] with [suffix] if no other recording in the same folder is called that, else
+	 * numbered the way new recordings are, "name (1)", "name (2)" and so on.
+	 */
+	private fun freeDisplayName(recordingId: Long, baseName: String, suffix: String): String {
+		val folder = contentResolver.query(
+			ContentUris.withAppendedId(RecordingsConstants.AUDIO_VOLUME_URI, recordingId),
+			arrayOf(MediaStore.Audio.AudioColumns.RELATIVE_PATH),
+			null,
+			null,
+		)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+			?: return baseName + suffix
+
+		fun isTaken(name: String): Boolean {
+			val selection = "${MediaStore.Audio.AudioColumns.RELATIVE_PATH} = ? AND " +
+					"${MediaStore.Audio.AudioColumns.DISPLAY_NAME} = ? AND " +
+					"${MediaStore.Audio.AudioColumns._ID} != ?"
+			val args = arrayOf(folder, name, recordingId.toString())
+			val queryArgs = bundleOf(
+				ContentResolver.QUERY_ARG_SQL_SELECTION to selection,
+				ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS to args,
+			)
+			return contentResolver.query(
+				RecordingsConstants.AUDIO_VOLUME_URI,
+				arrayOf(MediaStore.Audio.AudioColumns._ID),
+				queryArgs,
+				null,
+			)?.use { cursor -> cursor.count > 0 } ?: false
+		}
+
+		if (!isTaken(baseName + suffix)) return baseName + suffix
+		return (1..999).asSequence()
+			.map { number -> "$baseName ($number)$suffix" }
+			.firstOrNull { name -> !isTaken(name) }
+			?: (baseName + suffix)
+	}
+
 	override fun renameRecording(
 		recording: RecordedVoiceModel,
 		newName: String
@@ -265,13 +302,16 @@ internal class VoiceRecordingsProviderImpl(
 					newName.dropLast(suffix.length)
 				else newName
 
+				// android 10 refuses a name another file in the folder already has, the update
+				// fails on a unique path, later versions number it themselves
+				val freeName = withContext(Dispatchers.IO) {
+					freeDisplayName(recording.id, baseName, if (extension.isBlank()) "" else suffix)
+				}
+
 				// only the display name is written, media store derives the title itself and
 				// drops a value an app puts there, the list reads its names from this column
 				val contentValues = ContentValues().apply {
-					put(
-						MediaStore.Audio.AudioColumns.DISPLAY_NAME,
-						if (extension.isBlank()) baseName else baseName + suffix
-					)
+					put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, freeName)
 				}
 				val isSuccess = withContext(Dispatchers.IO) {
 					contentResolver.update(uri, contentValues, null, null)

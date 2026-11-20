@@ -1,6 +1,7 @@
 package com.eva.recorder.data
 
 import android.media.MediaRecorder
+import android.os.Build
 import android.webkit.MimeTypeMap
 import androidx.media3.common.MimeTypes
 import com.eva.datastore.domain.enums.RecordingEncoders
@@ -43,7 +44,10 @@ enum class RecordFormats(val encoder: Int, val outputFormat: Int, val mimeType: 
 				RecordingEncoders.AMR_NB -> THREE_GPP
 				RecordingEncoders.AMR_WB -> AMR_WB
 				RecordingEncoders.ACC -> M4A
-				RecordingEncoders.OPTUS -> OGG
+				// android 10 lists no media recorder encoder for Opus, the recording would
+				// never start, a setting carried over from a newer device records AAC there
+				RecordingEncoders.OPTUS ->
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) OGG else M4A
 			}
 		}
 	}

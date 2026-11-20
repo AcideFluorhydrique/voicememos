@@ -28,9 +28,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -98,12 +100,13 @@ internal fun VoiceMemosScreen(
 	)
 	val micPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
 
-	var showRecorderSheet by remember { mutableStateOf(false) }
+	// rotating recreates the activity, the recorder sheet closed while the recording went on
+	var showRecorderSheet by rememberSaveable { mutableStateOf(false) }
 	var showOverflowSheet by remember { mutableStateOf(false) }
 	var memoForActions by remember { mutableStateOf<RecordedVoiceModel?>(null) }
 	var memoToRename by remember { mutableStateOf<RecordedVoiceModel?>(null) }
 	var memoToDelete by remember { mutableStateOf<RecordedVoiceModel?>(null) }
-	var showDiscardAlert by remember { mutableStateOf(false) }
+	var showDiscardAlert by rememberSaveable { mutableStateOf(false) }
 	var revealedMemoId by remember { mutableStateOf<Long?>(null) }
 
 	val isRecorderBusy = recorderState == RecorderState.RECORDING ||
@@ -144,7 +147,9 @@ internal fun VoiceMemosScreen(
 		} else {
 			LazyColumn(
 				state = listState,
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.testTag("memos_list"),
 				contentPadding = PaddingValues(top = topInset + 44.dp),
 			) {
 				item(key = "large-title") {
@@ -157,7 +162,9 @@ internal fun VoiceMemosScreen(
 							onEvent(MemoScreenEvent.OnSearchQueryChange(query))
 						},
 						placeholder = stringResource(R.string.memos_search_placeholder),
-						modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+						modifier = Modifier
+							.padding(horizontal = 16.dp, vertical = 8.dp)
+							.testTag("memos_search"),
 					)
 				}
 				items(items = memos, key = { memo -> memo.id }) { memo ->
@@ -215,6 +222,7 @@ internal fun VoiceMemosScreen(
 			leading = {
 				CupertinoIconButton(
 					glyph = CupertinoGlyph.TRASH,
+					contentDescription = stringResource(R.string.menu_recently_deleted),
 					tint = colors.accent,
 					onClick = onNavigateToDeleted,
 				)
@@ -222,6 +230,7 @@ internal fun VoiceMemosScreen(
 			trailing = {
 				CupertinoIconButton(
 					glyph = CupertinoGlyph.GEAR,
+					contentDescription = stringResource(R.string.menu_settings),
 					tint = colors.accent,
 					onClick = onNavigateToSettings,
 				)

@@ -1,0 +1,79 @@
+name: Test a release in the emulator
+
+# Goes through a published release APK on one android version, to check whether a reported
+# crash is in a release, or that it is gone. The pushed builds are tested by Build APK already.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v1.0.2, blank for the latest release"
+        required: false
+        default: ""
+        type: string
+      api_level:
+        description: "Android API level"
+        required: false
+        default: "29"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Use ${{ inputs.tag || 'the latest release' }} on API ${{ inputs.api_level }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download the release APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p apks
+          gh release download $TAG -R "$GITHUB_REPOSITORY" -p '*.apk' -D apks
+          ls -la apks
+
+      # reads the screen without waiting for it to be still, the recorder timer never is
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uiautomator2
+        run: pip install uiautomator2==3.7.1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Go through the app in the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 4G
+          cores: 4
+          disable-animations: true
+          # audio stays on, the emulator gives the recorder a silent microphone
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none
+          script: python3 .github/scripts/emulator_e2e.py apks emulator-results
+
+      - name: Upload the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-${{ inputs.tag || 'latest' }}-api${{ inputs.api_level }}
+          path: emulator-results/
+          if-no-files-found: ignore
+          retention-days: 14

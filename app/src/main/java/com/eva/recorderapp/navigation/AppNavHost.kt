@@ -2,9 +2,14 @@ package com.eva.recorderapp.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -54,6 +59,11 @@ fun AppNavHost(
 			NavHost(
 				navController = navController,
 				startDestination = IosRoutes.VoiceMemos(),
+				// in landscape the navigation bar and a cutout sit on the sides, the screens only
+				// pad for the top and bottom, without this the settings button lay under the bar
+				modifier = Modifier.windowInsetsPadding(
+					WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+				),
 			) {
 				voiceMemosRoute(controller = navController)
 				trimEditorRoute(controller = navController)

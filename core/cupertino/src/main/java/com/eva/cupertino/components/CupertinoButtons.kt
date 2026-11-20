@@ -20,6 +20,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +38,7 @@ fun Modifier.pressable(
 	enabled: Boolean = true,
 	pressedAlpha: Float = 0.4f,
 	pressedScale: Float = 1f,
+	role: Role? = Role.Button,
 	onClick: () -> Unit,
 ): Modifier {
 	val interactionSource = remember { MutableInteractionSource() }
@@ -56,6 +60,7 @@ fun Modifier.pressable(
 			interactionSource = interactionSource,
 			indication = null,
 			enabled = enabled,
+			role = role,
 			onClick = onClick,
 		)
 }
@@ -81,10 +86,16 @@ fun CupertinoTextButton(
 	}
 }
 
-/**A circular icon button, used all over the player controls*/
+/**
+ * A circular icon button, used all over the player controls.
+ *
+ * @param contentDescription what the button does, read by TalkBack and used by the UI tests,
+ * the glyph alone says nothing to either
+ */
 @Composable
 fun CupertinoIconButton(
 	glyph: CupertinoGlyph,
+	contentDescription: String?,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 	tint: Color = CupertinoTheme.colors.label,
@@ -96,6 +107,7 @@ fun CupertinoIconButton(
 ) {
 	Box(
 		modifier = modifier
+			.semantics { if (contentDescription != null) this.contentDescription = contentDescription }
 			.pressable(enabled = enabled, onClick = onClick)
 			.size(buttonSize)
 			.background(color = background, shape = CircleShape),

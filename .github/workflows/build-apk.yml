@@ -127,3 +127,94 @@ jobs:
             **/build/outputs/logs/
             app/build/outputs/mapping/
           retention-days: 7
+
+  e2e:
+    name: Use the app on API ${{ matrix.api }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    # the results are pushed to the emulator-results branch, screenshots open right on GitHub
+    permissions:
+      contents: write
+    strategy:
+      # one level failing says nothing about the others, let them all finish
+      fail-fast: false
+      matrix:
+        # 29 is the lowest supported, 30 the first with scoped storage requests,
+        # 33 the first with the media permissions, 35 what the app was written against
+        api: [ 29, 30, 33, 35 ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # the debug APK always, the release one too when the signing key was there to build it
+      - name: Download the APKs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: voice-memos-*-apk
+          path: apks
+          merge-multiple: true
+
+      # reads the screen without waiting for it to be still, the recorder timer never is
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uiautomator2
+        run: pip install uiautomator2==3.7.1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # x86_64 runs at full speed under KVM, the APK carries no native code of its own, so a
+      # crash found here is one an arm phone of the same android version has as well
+      - name: Go through the app in the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 4G
+          cores: 4
+          disable-animations: true
+          # audio stays on, the emulator gives the recorder a silent microphone
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none
+          script: python3 .github/scripts/emulator_e2e.py apks emulator-results
+
+      - name: Upload the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-api${{ matrix.api }}
+          path: emulator-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # same as chromium-fdroid, a branch of results is readable without downloading artifacts
+      - name: Push the results to the emulator-results branch
+        if: always()
+        env:
+          DEST: runs/${{ github.run_id }}-${{ github.run_attempt }}/api${{ matrix.api }}
+          TOKEN: ${{ github.token }}
+        run: |
+          [ -d emulator-results ] || exit 0
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          remote="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone -q --depth 1 -b emulator-results "$remote" res 2>/dev/null \
+            || { git init -q res && git -C res checkout -q -b emulator-results && git -C res remote add origin "$remote"; }
+          mkdir -p "res/$DEST"
+          cp -r emulator-results/* "res/$DEST/"
+          find "res/$DEST" -name logcat.txt -exec gzip -9 {} \;
+          cd res
+          git add -A
+          git commit -q -m "Emulator results for run ${GITHUB_RUN_ID}, API ${{ matrix.api }}"
+          for i in 1 2 3 4 5; do git push -q origin emulator-results && break; git pull -q --rebase origin emulator-results; done
+          echo "Screenshots: https://github.com/${GITHUB_REPOSITORY}/tree/emulator-results/$DEST" >> "$GITHUB_STEP_SUMMARY"

@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -133,6 +135,10 @@ private fun AlertButton(
 
 	Box(
 		modifier = modifier
+			// on android 10 the dialog window is measured shorter than what it draws, the label
+			// below the cut is dropped from the accessibility tree and TalkBack found two
+			// nameless buttons, the clickable node itself carries the label
+			.semantics { contentDescription = action.text }
 			.pressable(pressedAlpha = .5f) {
 				onDismissRequest()
 				action.onClick()

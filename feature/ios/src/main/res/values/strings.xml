@@ -20,6 +20,9 @@
   <string name="action_delete_forever">Delete Permanently</string>
   <string name="action_open_settings">Open Settings</string>
   <string name="action_allow_access">Allow Access</string>
+  <string name="action_play">Play</string>
+  <string name="action_skip_back">Back 15 Seconds</string>
+  <string name="action_skip_forward">Forward 15 Seconds</string>
 
   <string name="label_today">Today</string>
   <string name="label_yesterday">Yesterday</string>

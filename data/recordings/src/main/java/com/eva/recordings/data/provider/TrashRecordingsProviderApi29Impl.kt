@@ -119,29 +119,39 @@ internal class TrashRecordingsProviderApi29Impl(
 	override fun createTrashRecordings(recordings: Collection<RecordedVoiceModel>)
 			: Flow<Resource<Collection<RecordedVoiceModel>, Exception>> {
 
-		val ownerRecordings = recordings.filter { it.owner == context.packageName }
-		val notOwnerRecordings = recordings.filterNot { it.owner == context.packageName }
-
 		return flow {
+			// a recording of an earlier install can be trashed too once the user approved
+			// the change, the ones media store still refuses are reported after
+			val refused = mutableListOf<RecordedVoiceModel>()
 			try {
 				supervisorScope {
 					// perform operations with creating a backup file
-					val operations = ownerRecordings.map { recording ->
-						async(Dispatchers.IO) { createBackUpEntry(recording) }
+					val operations = recordings.map { recording ->
+						async(Dispatchers.IO) {
+							try {
+								createBackUpEntry(recording)
+								null
+							} catch (e: SecurityException) {
+								Log.d(TAG, "NOT ALLOWED TO TRASH ${recording.id}", e)
+								recording
+							}
+						}
 					}
 					// run all the operations together
-					operations.awaitAll()
+					refused += operations.awaitAll().filterNotNull()
 				}
-				// now remove secondary data
-				val ids = recordings.map { it.id }
-				recordingsDao.deleteRecordingMetaDataFromIds(ids)
-				val successMessage = context.getString(R.string.recording_trash_request_success)
-				emit(Resource.Success(emptyList(), message = successMessage))
+				val trashed = recordings.filterNot { it in refused }
+				if (trashed.isNotEmpty()) {
+					// now remove secondary data
+					recordingsDao.deleteRecordingMetaDataFromIds(trashed.map { it.id })
+					val successMessage = context.getString(R.string.recording_trash_request_success)
+					emit(Resource.Success(emptyList(), message = successMessage))
+				}
 			} catch (e: Exception) {
 				Log.d(TAG, "SOME ERROR IN TRASHING FILES", e)
 				emit(Resource.Error(e))
 			}
-			if (notOwnerRecordings.isNotEmpty()) {
+			if (refused.isNotEmpty()) {
 				emit(Resource.Error(CannotTrashFileDifferentOwnerException()))
 			}
 		}
@@ -211,8 +221,9 @@ internal class TrashRecordingsProviderApi29Impl(
 		val isDeleteSuccess = try {
 			// delete the current recording info
 			permanentDeleteFromStorage(recording.fileUri.toUri())
-		} catch (e: CancellationException) {
-			// if delete was cancelled then delete the file and the table entry
+		} catch (e: Exception) {
+			// cancelled, or not allowed to delete another install's recording, the backup
+			// would otherwise list a recording in the trash that is still in place
 			withContext(NonCancellable) {
 				Log.d(TAG, "FAILED TO DELETE FILE FROM THE STORAGE")
 				removeBackupFileAndMetadata(entry)

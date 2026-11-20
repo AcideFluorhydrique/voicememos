@@ -1,5 +1,6 @@
 package com.eva.recordings.data.wrapper
 
+import android.app.RecoverableSecurityException
 import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
@@ -13,6 +14,30 @@ import com.eva.recordings.domain.models.TrashRecordingModel
 private const val TAG = "INTENT_MEDIA_REQUESTER"
 
 object RecordingsMediaRequester {
+
+	/**
+	 * Android 10 has no write or trash request, changing a recording another install made
+	 * throws a [RecoverableSecurityException] carrying the system's own approval dialog.
+	 * Opening the file for reading and writing, without truncating it, finds out whether this
+	 * install may change it already, and hands that dialog over when it may not.
+	 *
+	 * @return the approval to ask for, null when the recording can be changed as it is or on
+	 * any other version, which have requests of their own
+	 */
+	fun createLegacyWriteRequest(context: Context, recording: RecordedVoiceModel)
+			: IntentSenderRequest? {
+		if (Build.VERSION.SDK_INT != Build.VERSION_CODES.Q) return null
+		return try {
+			context.contentResolver.openFileDescriptor(recording.fileUri.toUri(), "rw")?.close()
+			null
+		} catch (e: RecoverableSecurityException) {
+			Log.d(TAG, "WRITE ACCESS NEEDS THE USER TO APPROVE")
+			IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
+		} catch (e: Exception) {
+			Log.e(TAG, "CANNOT CHECK WRITE ACCESS", e)
+			null
+		}
+	}
 
 	@RequiresApi(Build.VERSION_CODES.R)
 	fun createTrashRequest(context: Context, models: Collection<RecordedVoiceModel>)

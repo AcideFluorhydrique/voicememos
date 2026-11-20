@@ -92,6 +92,9 @@ fun NavGraphBuilder.voiceMemosRoute(controller: NavHostController) =
 				// write access is granted now, the rename goes through like any other
 				is MemoConsent.Rename ->
 					memosViewModel.onEvent(MemoScreenEvent.OnRename(consent.memo, consent.newName))
+
+				// android 10, the recording may be changed now, do what was asked
+				is MemoConsent.Retry -> memosViewModel.onEvent(consent.event)
 			}
 		}
 
@@ -112,7 +115,21 @@ fun NavGraphBuilder.voiceMemosRoute(controller: NavHostController) =
 				val isScoped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
 				val consent: Pair<MemoConsent, IntentSenderRequest>? = when {
-					!isScoped -> null
+					// android 10 approves a change to one recording through the dialog its
+					// security exception carries, the change itself is then done as usual
+					!isScoped -> {
+						val memo = when (event) {
+							is MemoScreenEvent.OnDelete -> event.memo
+							is MemoScreenEvent.OnRename -> event.memo.takeIf {
+								event.newName.isNotBlank() && event.newName != it.title
+							}
+
+							else -> null
+						}
+						memo?.takeIf { it.owner != context.packageName }
+							?.let { RecordingsMediaRequester.createLegacyWriteRequest(context, it) }
+							?.let { request -> MemoConsent.Retry(event) to request }
+					}
 
 					event is MemoScreenEvent.OnDelete && event.memo.owner != context.packageName ->
 						RecordingsMediaRequester.createTrashRequest(context, listOf(event.memo))
@@ -151,4 +168,5 @@ fun NavGraphBuilder.voiceMemosRoute(controller: NavHostController) =
 private sealed interface MemoConsent {
 	data class Trash(val memo: RecordedVoiceModel) : MemoConsent
 	data class Rename(val memo: RecordedVoiceModel, val newName: String) : MemoConsent
+	data class Retry(val event: MemoScreenEvent) : MemoConsent
 }

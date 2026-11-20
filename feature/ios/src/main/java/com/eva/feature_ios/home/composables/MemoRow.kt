@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.eva.cupertino.components.CupertinoSeparator
 import com.eva.cupertino.components.CupertinoSwipeAction
@@ -54,12 +55,14 @@ internal fun MemoRow(
 			glyph = CupertinoGlyph.SHARE,
 			background = colors.accent,
 			onClick = onShare,
+			testTag = "swipe_share",
 		),
 		CupertinoSwipeAction(
 			label = stringResource(R.string.action_delete),
 			glyph = CupertinoGlyph.TRASH,
 			background = colors.destructive,
 			onClick = onDelete,
+			testTag = "swipe_delete",
 		),
 	)
 
@@ -82,6 +85,7 @@ internal fun MemoRow(
 				modifier = Modifier
 					.fillMaxWidth()
 					.background(colors.systemBackground)
+					.testTag("memo_row")
 					.pressable(pressedAlpha = .55f, onClick = onClick)
 					.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
 				verticalAlignment = Alignment.CenterVertically,
