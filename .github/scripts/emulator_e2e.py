@@ -738,6 +738,18 @@ def step_trim_and_save():
 		time.sleep(1)
 	wait_new_recording(before, timeout=30)
 	go_home()
+	# the export is copied into media store and then has to go, run-as needs a debug build
+	deadline = time.time() + 15
+	left = None
+	while time.time() < deadline:
+		out = sh(f'run-as {PKG} ls cache/transformers').strip()
+		if 'not debuggable' in out or 'unknown package' in out:
+			return
+		left = [f for f in out.split() if 'No such file' not in out]
+		if not left:
+			return
+		time.sleep(1)
+	raise AssertionError(f'the trim export was left in the cache: {left}')
 
 
 def step_trim_delete_section_and_cancel():
