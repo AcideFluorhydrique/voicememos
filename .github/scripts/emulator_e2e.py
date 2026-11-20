@@ -686,11 +686,13 @@ def step_play_seek_speed():
 	bar = wait_for(rid='player_waveform')
 	sh(f'input tap {bar.x1 + (bar.x2 - bar.x1) // 2} {bar.center[1]}')
 	time.sleep(1)
-	# drag the waveform as a scrub
-	swipe(bar.x1 + 10, bar.center[1], bar.x2 - 10, bar.center[1], ms=600)
+	# drag the waveform as a scrub, to the middle, the end would finish the playback and a
+	# tap meant to pause would start it over
+	swipe(bar.x1 + (bar.x2 - bar.x1) * .1, bar.center[1], bar.x1 + (bar.x2 - bar.x1) * .5,
+	      bar.center[1], ms=600)
 	if find(rid='player_play', desc='Pause') is not None:
 		tap(rid='player_play')
-	wait_for(rid='player_play', desc='Play')
+	wait_for(rid='player_play', desc='Play', timeout=30)
 
 
 def step_rename():
@@ -1105,7 +1107,14 @@ def step_microphone_refused():
 	if allow_system_dialog():
 		tap(rid='record_button')
 	wait_for(text='New Recording', timeout=20)
-	tap(text='Cancel')
+	# the permission screen just closed, a tap at once can go nowhere while the window gets
+	# its focus back, so give it a moment and tap again if the question did not come
+	time.sleep(2)
+	for _ in range(3):
+		tap(text='Cancel')
+		if find(text='Discard Recording?') is not None:
+			break
+		time.sleep(1)
 	tap_in_dialog('Discard Recording?', 'Discard')
 
 
