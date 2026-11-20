@@ -133,9 +133,6 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 75
-    # the results are pushed to the emulator-results branch, screenshots open right on GitHub
-    permissions:
-      contents: write
     strategy:
       # one level failing says nothing about the others, let them all finish
       fail-fast: false
@@ -196,25 +193,3 @@ jobs:
           path: emulator-results/
           if-no-files-found: ignore
           retention-days: 14
-
-      # same as chromium-fdroid, a branch of results is readable without downloading artifacts
-      - name: Push the results to the emulator-results branch
-        if: always()
-        env:
-          DEST: runs/${{ github.run_id }}-${{ github.run_attempt }}/api${{ matrix.api }}
-          TOKEN: ${{ github.token }}
-        run: |
-          [ -d emulator-results ] || exit 0
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          remote="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git clone -q --depth 1 -b emulator-results "$remote" res 2>/dev/null \
-            || { git init -q res && git -C res checkout -q -b emulator-results && git -C res remote add origin "$remote"; }
-          mkdir -p "res/$DEST"
-          cp -r emulator-results/* "res/$DEST/"
-          find "res/$DEST" -name logcat.txt -exec gzip -9 {} \;
-          cd res
-          git add -A
-          git commit -q -m "Emulator results for run ${GITHUB_RUN_ID}, API ${{ matrix.api }}"
-          for i in 1 2 3 4 5; do git push -q origin emulator-results && break; git pull -q --rebase origin emulator-results; done
-          echo "Screenshots: https://github.com/${GITHUB_REPOSITORY}/tree/emulator-results/$DEST" >> "$GITHUB_STEP_SUMMARY"
