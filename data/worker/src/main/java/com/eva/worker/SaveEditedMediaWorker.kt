@@ -78,8 +78,12 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 					outputUri = contentUri.toUri(),
 					onProgress = {
 						val progress = (it * 100).toInt()
-						setProgress(workDataOf(PROGRESS to progress))
-						setForeground(getForegroundInfo(progress))
+						// a notification for every chunk would flood the system, once a percent
+						if (progress != lastProgress) {
+							lastProgress = progress
+							setProgress(workDataOf(PROGRESS to progress))
+							setForeground(getForegroundInfo(progress))
+						}
 					},
 				)
 			}
@@ -108,6 +112,14 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 			)
 		}
 	}
+
+	private var lastProgress = -1
+
+	/**
+	 * Below android 12 expedited work runs as a foreground service and work manager asks for
+	 * this before it starts, the default throws and the save failed on android 10 and 11.
+	 */
+	override suspend fun getForegroundInfo(): ForegroundInfo = getForegroundInfo(progress = 0)
 
 	private fun getForegroundInfo(progress: Int): ForegroundInfo {
 		val title = applicationContext.getString(R.string.save_edit_item_work_title)
@@ -140,13 +152,14 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 				val totalBytes = inputFile.length()
 				var bytesCopied = 0L
 				val buffer = ByteArray(bufferSize)
-				var bytesRead: Int
-				do {
-					bytesRead = inputStream.read(buffer)
-					outputStream.write(buffer)
+				while (true) {
+					val bytesRead = inputStream.read(buffer)
+					if (bytesRead < 0) break
+					// only what was read, the rest of the buffer still holds the previous chunk
+					outputStream.write(buffer, 0, bytesRead)
 					bytesCopied += bytesRead
 					onProgress(bytesCopied.toFloat() / totalBytes)
-				} while (bytesRead >= 0)
+				}
 				Log.d(TAG, "CONTENT COPIED")
 			}
 		} ?: Unit
