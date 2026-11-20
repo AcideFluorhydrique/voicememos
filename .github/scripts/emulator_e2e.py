@@ -89,7 +89,8 @@ def package_of(apk):
 
 
 class Node:
-	def __init__(self, el):
+	def __init__(self, el, window=0):
+		self.window = window
 		self.text = el.get('text', '')
 		self.desc = el.get('content-desc', '')
 		self.rid = el.get('resource-id', '')
@@ -113,6 +114,19 @@ class Node:
 		return f'<{self.cls.split(".")[-1]} text={self.text!r} desc={self.desc!r} id={self.rid!r}>'
 
 
+LAST_XML = ['']
+
+
+def parse(xml):
+	"""The nodes of a dump, each knowing which window it is in, the top level nodes are windows."""
+	LAST_XML[0] = xml
+	root = ET.fromstring(xml.encode('utf-8') if isinstance(xml, str) else xml)
+	nodes = []
+	for window, top in enumerate(root.findall('node')):
+		nodes += [Node(el, window) for el in top.iter('node')]
+	return nodes
+
+
 def _connect_u2():
 	try:
 		import uiautomator2
@@ -132,8 +146,7 @@ def dump():
 	if U2 is not None:
 		for _ in range(4):
 			try:
-				xml = U2.dump_hierarchy(compressed=False)
-				return [Node(el) for el in ET.fromstring(xml.encode('utf-8')).iter('node')]
+				return parse(U2.dump_hierarchy(compressed=False))
 			except Exception as e:
 				print(f'  dump failed: {e}', flush=True)
 				time.sleep(1)
@@ -144,8 +157,7 @@ def dump():
 		xml = sh('cat /sdcard/ui.xml')
 		if '<hierarchy' in xml:
 			try:
-				root = ET.fromstring(xml[xml.index('<?xml'):] if '<?xml' in xml else xml)
-				return [Node(el) for el in root.iter('node')]
+				return parse(xml[xml.index('<?xml'):] if '<?xml' in xml else xml)
 			except ET.ParseError:
 				pass
 		# the dump gives up while the screen is still animating, give it a moment
@@ -162,13 +174,13 @@ def matches(node, text=None, desc=None, rid=None, label=None, contains=None, pac
             cls=None):
 	if cls is not None and node.cls != cls:
 		return False
-	if text is not None and node.text != text:
+	if text is not None and node.text.casefold() != text.casefold():
 		return False
-	if desc is not None and node.desc != desc:
+	if desc is not None and node.desc.casefold() != desc.casefold():
 		return False
 	if rid is not None and not rid_matches(node, rid):
 		return False
-	if label is not None and label not in (node.text, node.desc):
+	if label is not None and label.casefold() not in (node.text.casefold(), node.desc.casefold()):
 		return False
 	if contains is not None and contains.lower() not in (node.text + ' ' + node.desc).lower():
 		return False
@@ -219,10 +231,17 @@ def tap(timeout=15, pause=1.2, **query):
 
 def tap_in_dialog(title, text, timeout=15):
 	"""Tap text in the dialog headed title, not a control of the same name behind it."""
-	heading = wait_for(text=title, timeout=timeout)
 	deadline = time.time() + timeout
 	while True:
-		below = [n for n in find_all(text=text) if n.y1 > heading.y1]
+		nodes = dump()
+		heading = find(nodes, text=title)
+		candidates = find_all(nodes, text=text) or find_all(nodes, desc=text)
+		if heading is not None:
+			# the dialog is a window of its own, a control with the same label behind it is not
+			own = [n for n in candidates if n.window == heading.window]
+			below = [n for n in (own or candidates) if n.y1 > heading.y1] or own
+		else:
+			below = []
 		if below:
 			tap_node(min(below, key=lambda n: n.y1 - heading.y1))
 			return
@@ -315,18 +334,39 @@ def at_home(nodes=None):
 	        or find(nodes, text='Allow Access') is not None)
 
 
-def go_home(timeout=25):
-	"""Back to the memos list from wherever a failed step left the app."""
-	deadline = time.time() + timeout
+def settled_at_home(nodes):
+	return (at_home(nodes) and find(nodes, text='New Recording') is None
+	        and find(nodes, text='Cancel') is None
+	        and find(nodes, package='com.android.systemui', rid='notification_text') is None)
+
+
+def go_home(timeout=40):
+	"""Back to the memos list from wherever a failed step left the app, by force if need be."""
+	sh('cmd statusbar collapse')
+	hide_keyboard()
+	deadline = time.time() + timeout / 2
 	while time.time() < deadline:
 		nodes = dump()
 		if find(nodes, package=PKG) is None or not is_running():
 			launch()
 			continue
-		if at_home(nodes) and find(nodes, text='New Recording') is None \
-				and find(nodes, text='Cancel') is None:
+		if settled_at_home(nodes):
+			# a recording a failed step left running would change every count after it
+			if find(nodes, rid='recording_indicator') is not None:
+				tap(rid='record_button')
+				time.sleep(2)
+				continue
 			return
 		back()
+	print('  forcing the app to stop to get back to the memos list', flush=True)
+	sh(f'am force-stop {PKG}')
+	time.sleep(1)
+	launch()
+	deadline = time.time() + timeout / 2
+	while time.time() < deadline:
+		if settled_at_home(dump()):
+			return
+		time.sleep(1)
 	raise AssertionError('could not get back to the memos list')
 
 
@@ -432,12 +472,28 @@ def wait_memo(title, timeout=15, gone=False):
 	                     f'list has {memo_titles()}')
 
 
+def player_of(row, nodes=None):
+	"""The play button of the card under row, if that row is the open one."""
+	nodes = dump() if nodes is None else nodes
+	_, h = screen_size()
+	for play in find_all(nodes, rid='player_play'):
+		if 0 <= play.y1 - row.y2 < h * .3:
+			return play
+	return None
+
+
 def expand(title):
-	"""Open the inline player of a memo, unless it is open already."""
-	row = wait_memo(title)
-	if find(rid='player_play') is None:
+	"""Open the inline player of this memo, closing another one that is open."""
+	for _ in range(3):
+		row = wait_memo(title)
+		if player_of(row) is not None:
+			return
 		tap_node(row)
-	wait_for(rid='player_play')
+		time.sleep(1)
+		row = wait_memo(title)
+		if player_of(row) is not None:
+			return
+	raise AssertionError(f'the player of {title!r} never opened')
 
 
 def title_of(display_name):
@@ -520,15 +576,19 @@ def step_notification_buttons():
 	before = recordings()
 	start_recording()
 	back()
+	# android 12 and up hold a foreground service notification back for up to ten seconds
+	time.sleep(11)
 	sh('cmd statusbar expand-notifications')
 	time.sleep(2)
-	wait_for(contains='Recorder is running')
+	wait_for(rid='notification_text', contains='running', timeout=25)
 	shot('notification-running')
-	tap(text='Pause', package='com.android.systemui', timeout=10)
-	wait_for(contains='Recorder Paused')
-	tap(text='Resume', package='com.android.systemui', timeout=10)
-	wait_for(contains='Recorder is running')
-	tap(text='Stop', package='com.android.systemui', timeout=10)
+	# the buttons are images, they carry the app's ids and descriptions
+	tap(rid='pause_button', timeout=10)
+	wait_for(rid='notification_text', contains='paused', timeout=15)
+	shot('notification-paused')
+	tap(rid='resume_button', timeout=10)
+	wait_for(rid='notification_text', contains='running', timeout=15)
+	tap(rid='stop_button', timeout=10)
 	sh('cmd statusbar collapse')
 	time.sleep(2)
 	launch()
@@ -847,19 +907,23 @@ def rotate(quarter):
 
 def step_rotation():
 	try:
+		before = recordings()
 		rotate(1)
 		wait_for(rid='record_button')
 		shot('landscape-memos')
-		start_recording()
-		rotate(0)
-		time.sleep(1)
-		rotate(1)
-		shot('landscape-recorder')
-		tap(text='Done')
-		wait_for(text='New Recording', gone=True)
 		open_settings()
 		shot('landscape-settings')
 		settings_back()
+		rotate(0)
+		# the recording has to live through the activity being recreated, twice
+		start_recording()
+		rotate(1)
+		shot('landscape-recorder')
+		rotate(0)
+		wait_for(text='New Recording')
+		tap(text='Done')
+		wait_for(text='New Recording', gone=True)
+		wait_new_recording(before)
 	finally:
 		rotate(0)
 	wait_for(rid='record_button')
@@ -890,7 +954,9 @@ def step_killed_in_background():
 def step_deep_links():
 	sh(f'am start -W -a android.intent.action.VIEW -d app://voicememos/recordings {PKG}')
 	wait_for(rid='record_button')
-	audio_id = next(i for n, (i, _) in recordings().items() if title_of(n) == STATE['recorded'])
+	found = recordings()
+	audio_id = next((i for n, (i, _) in found.items() if title_of(n) == STATE['recorded']),
+	                next(iter(found.values()))[0])
 	sh(f'am start -W -a android.intent.action.VIEW -d app://voicememos/player/{audio_id} {PKG}')
 	wait_for(rid='player_play', timeout=20)
 	shot('deep-link-player')
@@ -979,6 +1045,17 @@ def shot(name):
 		f.write(subprocess.run(['adb', 'exec-out', 'screencap', '-p'], capture_output=True).stdout)
 
 
+def describe(nodes):
+	"""The labelled nodes on screen, one line each, for the log of a failed step."""
+	lines = ['  on screen:']
+	for n in nodes:
+		if n.text or n.desc or (n.rid and not n.rid.startswith('android:')):
+			pkg = '' if n.package == PKG else f' [{n.package}]'
+			lines.append(f'    w{n.window} {n.cls.split(".")[-1]} text={n.text!r} desc={n.desc!r} '
+			             f'id={n.rid!r} at {n.center}{pkg}')
+	return '\n'.join(lines[:80])
+
+
 def check_crash(where):
 	crash = adb('logcat', '-d', '-b', 'crash')
 	if f'Process: {PKG}' in crash:
@@ -1057,8 +1134,10 @@ def run_apk(apk):
 			except AssertionError as crash:
 				message = f'{message}\n{crash}'
 			shot(name.removeprefix('step_') + '-failed')
+			nodes = dump()
 			with open(os.path.join(OUT, f'{STATE["shots"]:03d}-{name}-failed-ui.xml'), 'w') as f:
-				f.write(sh('cat /sdcard/ui.xml'))
+				f.write(LAST_XML[0])
+			print(describe(nodes), flush=True)
 			results.append((name, 'failed', message, time.time() - started))
 			print(f'✗ {name}: {message}', flush=True)
 			try:
@@ -1105,6 +1184,9 @@ if __name__ == '__main__':
 	# keep the screen on and unlocked for the whole run
 	sh('svc power stayon true')
 	sh('wm dismiss-keyguard')
+	# with gesture navigation a drag that starts near the edge is taken as back
+	sh('cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton')
+	time.sleep(2)
 	all_results = [run_apk(apk) for apk in apks]
 	summarize(all_results)
 	failed = any(r[1] == 'failed' for _, results in all_results for r in results)
