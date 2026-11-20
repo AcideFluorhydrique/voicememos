@@ -18,3 +18,4 @@ keystore.properties
 # signing keys never belong in the repository
 *.jks
 *.keystore
+__pycache__/
