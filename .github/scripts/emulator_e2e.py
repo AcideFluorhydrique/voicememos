@@ -1090,6 +1090,8 @@ def step_deep_links():
 
 def step_microphone_refused():
 	sh(f'pm revoke {PKG} android.permission.RECORD_AUDIO')
+	# refused twice it counts as don't ask again from android 11, a retry could not ask at all
+	sh(f'pm clear-permission-flags {PKG} android.permission.RECORD_AUDIO user-set user-fixed')
 	time.sleep(1)
 	launch()
 	tap(rid='record_button', timeout=30)
@@ -1206,6 +1208,11 @@ def check_crash(where):
 
 def seed_recording():
 	"""A second of tone in the app folder, made by the shell, so not owned by the app."""
+	# what the previous APK left, media store keeps the rows of an uninstalled app's files
+	# and android 10 then refuses those names to the next install
+	where = f"relative_path LIKE '{RELATIVE}%'"
+	sh('content delete --uri content://media/external/audio/media '
+	   f'--where {shlex.quote(where)}')
 	sh(f'rm -rf {FOLDER}')
 	sh(f'mkdir -p {FOLDER}')
 	with tempfile.TemporaryDirectory() as tmp:
@@ -1254,6 +1261,8 @@ def run_apk(apk):
 			continue
 		started = time.time()
 		first_failure = None
+		# the device clock, to find the step in logcat
+		print(f'▶ {name} at {sh("date +%H:%M:%S").strip()}', flush=True)
 		# one more try for what the emulator gets wrong now and then, never for a crash
 		for attempt in (1, 2):
 			try:
