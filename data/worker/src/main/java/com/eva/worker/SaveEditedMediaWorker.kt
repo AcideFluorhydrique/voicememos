@@ -62,8 +62,10 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 				)
 			)
 
+		var exportFile: File? = null
 		return try {
 			val file = fileUri.toUri().toFile()
+			exportFile = file
 
 			if (!file.exists()) return Result.failure(
 				workDataOf(
@@ -87,10 +89,12 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 					},
 				)
 			}
+			// the export is of no use once it is copied, or once the copy failed, the work is
+			// not retried and the editor exports again for a new save
+			val isSuccess = removeTransformsFile(file)
+			Log.d(TAG, "REMOVING FILE AFTER COPY :$isSuccess")
 			result.fold(
 				onSuccess = {
-					val isSuccess = removeTransformsFile(file)
-					Log.d(TAG, "REMOVING FILE AFTER COPY :$isSuccess")
 					Result.success(
 						workDataOf(
 							WorkerParams.WORK_SAVE_EDITED_ITEM_GOOD to true,
@@ -106,6 +110,7 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 				},
 			)
 		} catch (e: Exception) {
+			exportFile?.let { file -> removeTransformsFile(file) }
 			val message = e.message ?: "Unknown"
 			Result.failure(
 				workDataOf(WorkerParams.WORK_SAVE_EDITED_ITEM_FAILED to message)
@@ -165,13 +170,20 @@ class SaveEditedMediaWorker @AssistedInject constructor(
 		} ?: Unit
 	}
 
+	/**
+	 * Deletes the editor's export once it has been copied. The editor writes it into the
+	 * app's cache as temp_*.m4a, the old check for a .tmp extension never matched and every
+	 * saved trim left its export behind. Only a file inside the cache is touched, whatever uri
+	 * the work was given, a recording in media store can never be removed here.
+	 */
 	suspend fun removeTransformsFile(file: File): Boolean {
 		return withContext(Dispatchers.IO) {
 			try {
-				// as this file will be mostly a temp file if not deleted properly
-				// there is less chance of an issue
-				if (!file.exists()) return@withContext false
-				if (file.extension != "tmp") return@withContext false
+				if (!file.isFile) return@withContext false
+				val cacheDir = applicationContext.cacheDir.canonicalFile
+				val isInCache = generateSequence(file.canonicalFile.parentFile) { it.parentFile }
+					.any { parent -> parent == cacheDir }
+				if (!isInCache) return@withContext false
 				file.delete()
 			} catch (e: Exception) {
 				e.printStackTrace()

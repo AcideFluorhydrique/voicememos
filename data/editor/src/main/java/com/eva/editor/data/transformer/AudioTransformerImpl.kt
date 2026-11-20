@@ -39,6 +39,8 @@ import java.io.IOException
 
 private const val TAG = "AUDIO_TRANSFORMER"
 
+private const val STALE_EXPORT_AGE_MILLIS = 24 * 60 * 60 * 1000L
+
 @UnstableApi
 internal class AudioTransformerImpl(private val context: Context) : AudioTransformer {
 
@@ -120,6 +122,7 @@ internal class AudioTransformerImpl(private val context: Context) : AudioTransfo
 
 		return try {
 			_isTransforming.update { true }
+			clearStaleExports()
 			val seekable = model.mimeType !in _notSeekableFormats
 			Log.d(TAG, "IS MEDIA SEEKABLE :$seekable")
 			if (seekable) createFileAndTransform(model, actions)
@@ -136,13 +139,34 @@ internal class AudioTransformerImpl(private val context: Context) : AudioTransfo
 		}
 	}
 
+	/**
+	 * Exports a save never picked up, from a save that failed or from versions that did not
+	 * delete them at all. A day old is long past any save still waiting to copy one.
+	 */
+	private suspend fun clearStaleExports(): Unit = withContext(Dispatchers.IO) {
+		val cutOff = System.currentTimeMillis() - STALE_EXPORT_AGE_MILLIS
+		val exports: List<File> = _transformerDirectory.listFiles()?.toList().orEmpty()
+		// earlier versions wrote the amr exports straight into the cache
+		val olderExports: List<File> = context.cacheDir.listFiles()?.toList().orEmpty()
+			.filter { file ->
+				file.name.startsWith("final_conversion_") || file.name.startsWith("first_conversion")
+			}
+		(exports + olderExports)
+			.filter { file -> file.isFile && file.lastModified() < cutOff }
+			.forEach { file ->
+				val deleted = file.delete()
+				Log.d(TAG, "STALE EXPORT ${file.name} REMOVED :$deleted")
+			}
+	}
+
 	override suspend fun removeTransformsFile(uri: String): Result<Boolean> {
 		return withContext(Dispatchers.IO) {
 			try {
 				val file = uri.toUri().toFile()
 				if (!file.exists())
 					return@withContext Result.failure(Exception("Wrong file provided"))
-				if (file.parentFile == _transformerDirectory)
+				// only an export of this class, never a file somewhere else
+				if (file.canonicalFile.parentFile != _transformerDirectory.canonicalFile)
 					return@withContext Result.failure(Exception("Invalid file location"))
 				val delete = file.delete()
 				Log.d(TAG, "TEMP REMOVED :$delete")
@@ -213,7 +237,8 @@ internal class AudioTransformerImpl(private val context: Context) : AudioTransfo
 			}
 			val finalFile = withContext(Dispatchers.IO) {
 				val extension = _mimeMap.getExtensionFromMimeType(model.mimeType)
-				File.createTempFile("final_conversion_", ".$extension", context.cacheDir)
+				// next to the other exports, where clearing stale ones finds it
+				File.createTempFile("final_conversion_", ".$extension", _transformerDirectory)
 			}
 			try {
 				// convert the file into acc
