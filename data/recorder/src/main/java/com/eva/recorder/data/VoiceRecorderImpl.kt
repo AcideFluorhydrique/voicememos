@@ -251,9 +251,17 @@ internal class VoiceRecorderImpl(
 			Log.d(TAG, "STOPWATCH STOPPED")
 			_stopWatch.stop()
 			//stop the ongoing recording
-			_recorder?.stop()
+			try {
+				_recorder?.stop()
+			} catch (e: RuntimeException) {
+				// media recorder throws on purpose when not a single frame reached it, a codec
+				// that never produced anything or a stop right after the start, there is no file
+				// worth keeping and the recorder has to be reset before the next recording
+				Log.e(TAG, "RECORDER STOPPED WITHOUT ANY AUDIO", e)
+				stopAndDeleteFileMetaData()
+				return Result.failure(e)
+			}
 			Log.d(TAG, "RECORDER STOPPED")
-			Result.success(0L)
 			// update the file
 			updateRecordingToExternalStorage(file)
 		}
