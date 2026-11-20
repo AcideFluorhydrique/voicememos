@@ -803,22 +803,34 @@ def step_delete_by_swipe():
 	wait_memo(victim, gone=True)
 
 
-def step_delete_one_left_behind():
-	"""A recording this install did not make, android 11 and up ask the user first."""
-	row = wait_memo(SEED_TITLE)
+def step_change_one_left_behind():
+	"""A recording this install did not make, the system asks the user before every change.
+
+	Android 11 and up show a write or trash request, android 10 the dialog of the security
+	exception the change ran into. The recording is renamed and then deleted.
+	"""
+	renamed = SEED_TITLE + ' kept'
+	open_more(SEED_TITLE)
+	tap_lowest('Rename')
+	field = wait_for(cls='android.widget.EditText')
+	tap_node(field)
+	clear_field()
+	type_text(renamed)
+	tap_in_dialog('Name', 'Save')
+	shot('system-write-approval')
+	assert allow_system_dialog(timeout=10), 'the system never asked to approve the rename'
+	wait_memo(renamed, timeout=20)
+
+	row = wait_memo(renamed)
 	w, _ = screen_size()
 	swipe(w * .85, row.center[1], w * .1, row.center[1], ms=400)
 	tap(rid='swipe_delete')
 	delete_alert()
-	if API < 30:
-		# android 10 offers no way to approve it, the app says so and keeps the recording
-		time.sleep(3)
-		shot('left-behind-refused')
-		wait_memo(SEED_TITLE)
-		return
 	shot('system-trash-approval')
-	assert allow_system_dialog(timeout=10), 'the system never asked to approve the delete'
-	wait_memo(SEED_TITLE, gone=True)
+	asked = allow_system_dialog(timeout=10)
+	# android 10 keeps the write access the rename was given, it need not ask again
+	assert asked or API < 30, 'the system never asked to approve the delete'
+	wait_memo(renamed, gone=True)
 
 
 def step_recently_deleted():
@@ -950,18 +962,20 @@ def step_every_format():
 	for label, quality, stereo in FORMATS:
 		what = label + (f', {quality}' if quality else '') + (', stereo' if stereo else '')
 		try:
+			if label == 'Opus' and API < 30:
+				# android 10 has no media recorder encoder for it, it must not be offered
+				open_settings()
+				tap(text=scroll_to('Format').text)
+				wait_for(text='AAC')
+				shot('format-sheet-without-opus')
+				offered = find(text='Opus') is not None
+				tap_lowest('Cancel')
+				settings_back()
+				assert not offered, 'Opus is offered on android 10'
+				print(f'  {what}: not offered on android 10 as expected', flush=True)
+				continue
 			set_format(label, quality, stereo)
 			before = recordings()
-			if label == 'Opus' and API < 30:
-				tap(rid='record_button')
-				# the sheet may flash open, it has to close with nothing left recording
-				time.sleep(4)
-				assert find(text='New Recording') is None, 'the recorder sheet stayed open'
-				assert find(rid='recording_indicator') is None, 'a recording is still running'
-				assert set(recordings()) == set(before), 'opus left a file on android 10'
-				print(f'  {what}: refused on android 10 as expected', flush=True)
-				shot('format-opus-refused')
-				continue
 			start_recording()
 			time.sleep(3)
 			tap(text='Done')
@@ -1094,7 +1108,7 @@ STEPS = [
 	step_trim_delete_section_and_cancel,
 	step_delete_from_player,
 	step_delete_by_swipe,
-	step_delete_one_left_behind,
+	step_change_one_left_behind,
 	step_recently_deleted,
 	step_settings_appearance,
 	step_settings_switches,
