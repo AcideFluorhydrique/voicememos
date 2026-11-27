@@ -6,4 +6,18 @@
   <string name="widget_action_resume">繼續</string>
   <string name="widget_action_stop">停止並儲存</string>
   <string name="widget_action_cancel">捨棄錄音</string>
+  <string name="shortcut_picker_label">錄音操作</string>
+  <string name="shortcut_picker_title">選擇操作</string>
+  <string name="shortcut_action_start">開始錄音</string>
+  <string name="shortcut_action_start_description">開始新的錄音</string>
+  <string name="shortcut_action_pause">暫停</string>
+  <string name="shortcut_action_pause_description">暫停進行中的錄音</string>
+  <string name="shortcut_action_resume">繼續</string>
+  <string name="shortcut_action_resume_description">繼續已暫停的錄音</string>
+  <string name="shortcut_action_stop">停止並儲存</string>
+  <string name="shortcut_action_stop_description">結束錄音並儲存</string>
+  <string name="shortcut_action_toggle_record_pause">切換 錄音 / 暫停</string>
+  <string name="shortcut_action_toggle_record_pause_description">閒置時開始，錄音時暫停，暫停時繼續</string>
+  <string name="shortcut_action_toggle_record_stop">切換 錄音 / 停止</string>
+  <string name="shortcut_action_toggle_record_stop_description">閒置時開始，否則停止並儲存</string>
 </resources>
