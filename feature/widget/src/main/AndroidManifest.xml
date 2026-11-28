@@ -1,5 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application>
+
+    <!-- "Launch app shortcut" picker for automation apps (Key Mapper, Tasker, MacroDroid):
+         lists the recorder actions and returns the chosen one as a shortcut. -->
+    <activity
+      android:name=".shortcut.ShortcutConfigActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:label="@string/shortcut_picker_label"
+      android:theme="@style/Theme.RecorderApp">
+      <intent-filter>
+        <action android:name="android.intent.action.CREATE_SHORTCUT" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
+
+    <!-- Window-less target of those shortcuts. It passes the action on to the recording
+         service, which stays unexported, and finishes. The empty task affinity keeps the
+         main task from being brought forward. -->
+    <activity
+      android:name=".shortcut.ShortcutHandlerActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.NoDisplay" />
+
     <receiver
       android:name=".receivers.RecordingsWidgetReceiver"
       android:enabled="true"

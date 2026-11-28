@@ -20,4 +20,18 @@
   <string name="widget_recorder_widget" translatable="false">Recorder Widget</string>
   <string name="widget_recordings_title" translatable="false">Recordings</string>
   <string name="widget_no_recordings" translatable="false">No Recordings</string>
+  <string name="shortcut_picker_label">Recorder actions</string>
+  <string name="shortcut_picker_title">Choose an action</string>
+  <string name="shortcut_action_start">Start recording</string>
+  <string name="shortcut_action_start_description">Starts a new recording</string>
+  <string name="shortcut_action_pause">Pause</string>
+  <string name="shortcut_action_pause_description">Pauses the recording in progress</string>
+  <string name="shortcut_action_resume">Resume</string>
+  <string name="shortcut_action_resume_description">Continues a paused recording</string>
+  <string name="shortcut_action_stop">Stop and save</string>
+  <string name="shortcut_action_stop_description">Ends the recording and saves it</string>
+  <string name="shortcut_action_toggle_record_pause">Toggle record / pause</string>
+  <string name="shortcut_action_toggle_record_pause_description">Starts when idle, pauses while recording, resumes when paused</string>
+  <string name="shortcut_action_toggle_record_stop">Toggle record / stop</string>
+  <string name="shortcut_action_toggle_record_stop_description">Starts when idle, stops and saves otherwise</string>
 </resources>
