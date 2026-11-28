@@ -61,6 +61,7 @@ class ShortcutConfigActivity : ComponentActivity() {
 		val shortcutIntent = Intent(applicationContext, ShortcutHandlerActivity::class.java).apply {
 			this.action = ShortcutContract.ACTION_RUN_SHORTCUT
 			putExtra(ShortcutContract.EXTRA_ACTION, action.id)
+			putExtra(ShortcutContract.EXTRA_TOKEN, ShortcutToken.getOrCreate(applicationContext))
 		}
 
 		val result = Intent().apply {

@@ -35,8 +35,15 @@ class ShortcutHandlerActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		try {
-			ShortcutAction.fromId(intent?.getStringExtra(ShortcutContract.EXTRA_ACTION))
-				?.let(::perform)
+			// the handler is exported for automation apps, only a shortcut made in the picker
+			// carries the token, anything else is dropped
+			val token = intent?.getStringExtra(ShortcutContract.EXTRA_TOKEN)
+			if (ShortcutToken.isValid(applicationContext, token)) {
+				ShortcutAction.fromId(intent?.getStringExtra(ShortcutContract.EXTRA_ACTION))
+					?.let(::perform)
+			} else {
+				Log.w(TAG, "SHORTCUT IGNORED, MISSING OR WRONG TOKEN")
+			}
 		} catch (e: Exception) {
 			Log.e(TAG, "SHORTCUT FAILED", e)
 		} finally {

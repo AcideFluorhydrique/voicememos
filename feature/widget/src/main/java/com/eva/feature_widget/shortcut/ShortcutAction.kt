@@ -41,4 +41,7 @@ internal object ShortcutContract {
 
 	/** The [ShortcutAction.id] to perform */
 	const val EXTRA_ACTION = "${IntentConstants.APPLICATION_NAME}.extra_shortcut_action"
+
+	/** Proof that the shortcut was created in the picker, see [ShortcutToken] */
+	const val EXTRA_TOKEN = "${IntentConstants.APPLICATION_NAME}.extra_shortcut_token"
 }
