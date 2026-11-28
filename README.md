@@ -5,10 +5,10 @@
     <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70" />
   </a>
   <a href="https://github.com/AcideFluorhydrique/voicememos/releases">
-    <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_github.png" alt="Get it on GitHub" height="70" />
+    <img src="https://tachibanagenerallaboratories.github.io/images/badges/GitHub/get-it-on-github.png" alt="Get it on GitHub" height="70" />
   </a>
   <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/AcideFluorhydrique/voicememos/releases">
-    <img src="https://github.com/mmlado/GapSign/blob/main/assets/badges/badge_obtainium.png" alt="Get it on Obtainium" height="70" />
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/refs/heads/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="70" />
   </a>
 </p>
 
@@ -69,7 +69,8 @@ The `Signer #1 certificate SHA-256 digest` line should match the fingerprint abo
 - **Recently Deleted.** Deleted recordings rest for 30 days and can be recovered or purged.
 - **Swipe actions, action sheets, alerts, haptics.** The small interactions that make an
   iOS app feel like one.
-- **Localised.** English, 繁體中文 and 简体中文.
+- **Localised.** English, 繁體中文 and 简体中文 — help translate into more languages on
+  [Weblate](https://hosted.weblate.org/engage/voicememos/).
 
 ## 🧱 How it is put together
 
