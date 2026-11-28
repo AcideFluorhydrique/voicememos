@@ -1067,6 +1067,47 @@ def step_system_dark_mode():
 	wait_for(rid='record_button')
 
 
+def text_contrast(image, node):
+	"""How far the darkest and the lightest pixels of a node apart are, 0 to 1."""
+	box = image.crop((node.x1, node.y1, node.x2, node.y2)).convert('L')
+	low, high = box.getextrema()
+	return (high - low) / 255
+
+
+def step_light_appearance_under_force_dark():
+	"""Issue 2 again: MIUI darkens light apps on its own, the light appearance came out as
+	white text on a light background. Android's force dark does the same, the app must opt out.
+	"""
+	from io import BytesIO
+	from PIL import Image
+	try:
+		# force dark is read when a window is made, the app has to start again
+		sh('setprop debug.hwui.force_dark true')
+		sh(f'am force-stop {PKG}')
+		launch()
+		wait_for(rid='record_button', timeout=30)
+		open_settings()
+		tap(text='Light')
+		time.sleep(2)
+		image = Image.open(BytesIO(subprocess.run(['adb', 'exec-out', 'screencap', '-p'],
+		                                          capture_output=True).stdout))
+		shot('light-under-force-dark')
+		weak = []
+		for label in ('Appearance', 'Automatic', 'Dark', 'Format'):
+			node = wait_for(text=label)
+			contrast = text_contrast(image, node)
+			if contrast < .25:
+				weak.append(f'{label} {contrast:.2f}')
+		assert not weak, f'text hard to read in the light appearance under force dark: {weak}'
+		tap(text='Automatic')
+		settings_back()
+	finally:
+		sh('setprop debug.hwui.force_dark false')
+		sh(f'am force-stop {PKG}')
+		launch()
+	wait_for(rid='record_button', timeout=30)
+
+
 def step_killed_in_background():
 	home()
 	time.sleep(2)
@@ -1156,6 +1197,7 @@ STEPS = [
 	step_every_format,
 	step_rotation,
 	step_system_dark_mode,
+	step_light_appearance_under_force_dark,
 	step_killed_in_background,
 	step_deep_links,
 	step_microphone_refused,
