@@ -49,6 +49,10 @@ class MainActivity : ComponentActivity() {
 		// set enable edge to edge normally
 		enableEdgeToEdge()
 
+		// the appearance is chosen in settings, the system must not darken the light one on top,
+		// MIUI did and turned part of the text white on a light background
+		window.decorView.isForceDarkAllowed = false
+
 		// hold the splash until the saved appearance is known, otherwise a dark app opens
 		// with a white frame on a light system and the other way round
 		splash.setKeepOnScreenCondition { themeViewModel.themeMode.value == null }

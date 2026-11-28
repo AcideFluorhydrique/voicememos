@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-  <style name="Theme.RecorderApp" parent="android:Theme.Material.NoActionBar" />
+  <!-- the app draws its own light and dark appearance, android 10's force dark and MIUI's
+       dark mode recolour only part of a compose screen, white text on a light background -->
+  <style name="Theme.RecorderApp" parent="android:Theme.Material.NoActionBar">
+    <item name="android:forceDarkAllowed">false</item>
+  </style>
 
 </resources>
